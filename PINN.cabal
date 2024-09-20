@@ -1,0 +1,23 @@
+cabal-version:      3.0
+name:               PINN
+version:            0.1.0.0
+synopsis:
+    This project attempts to solve Duffing equation using PINN and numerical methods.
+
+license:            MIT
+license-file:       LICENSE
+author:             JktuJQ
+maintainer:         odmamontov@gmail.com
+category:           Math
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+executable PINN
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:    base ^>=4.17.2.1
+    hs-source-dirs:   app
+    default-language: Haskell2010
