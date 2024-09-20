@@ -18,6 +18,10 @@ common warnings
 executable PINN
     import:           warnings
     main-is:          Main.hs
-    build-depends:    base ^>=4.17.2.1
+    other-modules: CauchyProblem,
+                   CauchyProblem.Times,
+    build-depends:    base ^>= 4.17.2.1,
+                      vector,
+
     hs-source-dirs:   app
     default-language: Haskell2010
