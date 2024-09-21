@@ -3,8 +3,6 @@
 -}
 module CauchyProblem.Times where
 
-import Data.Vector (Vector, fromList)
-
 {-
     `Time` type alias corresponds to a numerical value of time parameter.
 -}
@@ -14,7 +12,7 @@ type Time = Double
 
     You can think of a timeline as a slice of `Timegrid`.
 -}
-type Timeline = Vector Time
+type Timeline = [Time]
 
 {-
     `TimeSettings` record datatype describes settings with which a `Timegrid` will be created.
@@ -74,7 +72,7 @@ data Timegrid = Timegrid {
     Constructs `Timegrid` from given `TimeSettings`.
 -}
 fromTimeSettings :: TimeSettings -> Timegrid
-fromTimeSettings settings = Timegrid settings (fromList $ takeWhile (\t -> t <= end) (create start 0))
+fromTimeSettings settings = Timegrid settings (takeWhile (<= end) (create start 0))
  where
     start = t0 settings
     end = t1 settings

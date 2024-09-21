@@ -20,6 +20,7 @@ executable PINN
     main-is:          Main.hs
     other-modules: CauchyProblem,
                    CauchyProblem.Times,
+                   CauchyProblem.NumericalMethods
     build-depends:    base ^>= 4.17.2.1,
                       vector,
 

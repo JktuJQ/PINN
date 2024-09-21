@@ -5,6 +5,7 @@
 module CauchyProblem where
 
 import Data.Vector (Vector)
+
 import CauchyProblem.Times (Time)
 
 {-
