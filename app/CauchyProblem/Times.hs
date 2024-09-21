@@ -47,6 +47,11 @@ data TimeSettings = TimeSettings {
     step_fn :: Int -> Time
 }
 
+{-
+    `Timegrid` record datatype represents a timegrid on which numerical methods will operate.
+
+    It holds its initial time settings, because those are needed for the entirety of timegrid usage.
+-}
 data Timegrid = Timegrid {
     {-
         `TimeSettings` with which this `Timegrid` was created.
