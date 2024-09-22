@@ -3,7 +3,7 @@
 -}
 module CauchyProblem.NumericalMethods where
 
-import Data.Vector (Vector, (!))
+import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 import CauchyProblem (Vars, Fn, Parameters, CauchyData)
@@ -53,4 +53,4 @@ iterStep method_creator (t, u) timeline = V.fromList $ go 0 method_creator (t, u
 derivativeApprox :: Time -> Vector Fn -> InductiveMethod
 derivativeApprox tau fns = approx
  where
-    approx (t, u) = V.fromList [(u!i) + tau * (fns!i) (t, u) | i <- [0..(V.length u)]]
+    approx (t, u) = V.zipWith (\u_val f -> u_val + tau * f (t, u)) u fns
