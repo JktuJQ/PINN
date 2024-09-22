@@ -52,12 +52,11 @@ data TimeSettings = TimeSettings {
 -}
 data Timegrid = Timegrid {
     {-
-        `TimeSettings` with which this `Timegrid` was created.
+        `tau_fn` function specifies what time interval will be separating values in a `Timegrid`.
 
-        It is sometimes necessary to still have initial values
-        after iterating on a corresponding timeline.
+        `Timegrid` obtains this function from the `TimeSettings` `step_fn`.
     -}
-    time_settings :: TimeSettings,
+    tau_fn :: Int -> Time,
 
     {-
         `Timeline` which represents this `Timegrid`.
@@ -72,7 +71,7 @@ data Timegrid = Timegrid {
     Constructs `Timegrid` from given `TimeSettings`.
 -}
 fromTimeSettings :: TimeSettings -> Timegrid
-fromTimeSettings settings = Timegrid settings (takeWhile (<= end) (create start 0))
+fromTimeSettings settings = Timegrid step (takeWhile (<= end) (create start 0))
  where
     start = t0 settings
     end = t1 settings

@@ -7,7 +7,7 @@ module CauchyProblem.NumericalMethods.Methods where
 import qualified Data.Vector as V
 
 import CauchyProblem (CauchyData(CauchyData))
-import CauchyProblem.Times (TimeSettings(TimeSettings), Timegrid(Timegrid))
+import CauchyProblem.Times (Timegrid(Timegrid))
 import CauchyProblem.NumericalMethods (NumericalMethod, iterStep, derivativeApprox)
 
 {-
@@ -17,12 +17,12 @@ import CauchyProblem.NumericalMethods (NumericalMethod, iterStep, derivativeAppr
     as `derivativeApprox` in the `CauchyProblem.NumericalMethods` module.
 -}
 methodEuler :: NumericalMethod
-methodEuler (Timegrid (TimeSettings _ _ step_fn) timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
+methodEuler (Timegrid tau_fn timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
  where
     current_t = head timeline
     ts = tail timeline
 
-    approx i = derivativeApprox (step_fn i) fns
+    approx i = derivativeApprox (tau_fn i) fns
     go = iterStep approx
 
 {-
@@ -31,15 +31,15 @@ methodEuler (Timegrid (TimeSettings _ _ step_fn) timeline) (CauchyData u0 fns) =
     It is based on the approximation of an integral with the trapezoid.
 -}
 methodTrapezoid :: NumericalMethod
-methodTrapezoid (Timegrid (TimeSettings _ _ step_fn) timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
+methodTrapezoid (Timegrid tau_fn timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
  where
     current_t = head timeline
     ts = tail timeline
 
-    approx i = derivativeApprox (step_fn i) fns
+    approx i = derivativeApprox (tau_fn i) fns
     step i (t, u) = V.zipWith (\u_val f -> u_val + half_step * (f (t, u) + f middle_parameters)) u fns
      where
-        tau = step_fn i
+        tau = tau_fn i
         half_step = tau / 2.0
         recalculated = (approx i) (t, u)
         middle_parameters = (t + tau, recalculated)
@@ -52,14 +52,14 @@ methodTrapezoid (Timegrid (TimeSettings _ _ step_fn) timeline) (CauchyData u0 fn
     which allows for greater accuracy.
 -}
 methodRungeKutta :: NumericalMethod
-methodRungeKutta (Timegrid (TimeSettings _ _ step_fn) timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
+methodRungeKutta (Timegrid tau_fn timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
  where
     current_t = head timeline
     ts = tail timeline
     
     step i (t, u) = u `add` ((tau / 6.0) `mul` k)
      where
-        tau = step_fn i
+        tau = tau_fn i
         
         add = V.zipWith (+)
         mul n = V.map (*n)
