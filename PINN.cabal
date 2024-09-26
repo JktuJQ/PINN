@@ -21,7 +21,9 @@ executable PINN
     other-modules: CauchyProblem,
                    CauchyProblem.Times,
                    CauchyProblem.NumericalMethods,
-                   CauchyProblem.NumericalMethods.Methods
+                   CauchyProblem.NumericalMethods.Methods,
+
+                   Task
     build-depends:    base ^>= 4.17.2.1,
                       vector,
 
