@@ -22,6 +22,7 @@ executable PINN
                    CauchyProblem.Times,
                    CauchyProblem.NumericalMethods,
                    CauchyProblem.NumericalMethods.Methods,
+                   CauchyProblem.NumericalMethods.ErrorTests,
 
                    Task
     build-depends:    base ^>= 4.17.2.1,
