@@ -24,7 +24,7 @@ x'0 default_value input = if input == "" then default_value else read input
 
 {-
     `differentialEquations` function returns equations that define Duffing oscillator
-     (gamma * cos (omega * t) - alpha * x - beta * x ^ 3 - delta * v).
+     (dv/dt = gamma * cos (omega * t) - alpha * x - beta * x ^ 3 - delta * v).
 
     This function requires 5 parameters which can affect the oscillator.
 -}

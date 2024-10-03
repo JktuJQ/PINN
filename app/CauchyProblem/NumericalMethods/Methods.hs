@@ -17,11 +17,9 @@ import CauchyProblem.NumericalMethods (NumericalMethod, iterStep, derivativeAppr
     as `derivativeApprox` in the `CauchyProblem.NumericalMethods` module.
 -}
 methodEuler :: NumericalMethod
-methodEuler (Timegrid tau_fn timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
+methodEuler (Timegrid _ []) _ = V.empty
+methodEuler (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
-    current_t = head timeline
-    ts = tail timeline
-
     approx i = derivativeApprox (tau_fn i) fns
     go = iterStep approx
 
@@ -31,11 +29,9 @@ methodEuler (Timegrid tau_fn timeline) (CauchyData u0 fns) = (timeline, go (curr
     It is based on the approximation of an integral with the trapezoid.
 -}
 methodTrapezoid :: NumericalMethod
-methodTrapezoid (Timegrid tau_fn timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
+methodTrapezoid (Timegrid _ []) _ = V.empty
+methodTrapezoid (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
-    current_t = head timeline
-    ts = tail timeline
-
     approx i = derivativeApprox (tau_fn i) fns
     step i (t, u) = V.zipWith (\u_val f -> u_val + half_step * (f (t, u) + f middle_parameters)) u fns
      where
@@ -52,11 +48,9 @@ methodTrapezoid (Timegrid tau_fn timeline) (CauchyData u0 fns) = (timeline, go (
     which allows for greater accuracy.
 -}
 methodRungeKutta :: NumericalMethod
-methodRungeKutta (Timegrid tau_fn timeline) (CauchyData u0 fns) = (timeline, go (current_t, u0) ts)
+methodRungeKutta (Timegrid _ []) _ = V.empty
+methodRungeKutta (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
-    current_t = head timeline
-    ts = tail timeline
-    
     step i (t, u) = u `add` ((tau / 6.0) `mul` k)
      where
         tau = tau_fn i

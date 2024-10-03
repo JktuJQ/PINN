@@ -12,11 +12,8 @@ import CauchyProblem.Times (Time, Timeline, Timegrid)
 {-
     `NumericalSolution` type alias represents the result of numerical method,
     which should produce values of `u` vector at all time marks in a timegrid.
-
-    `NumericalSolution` also includes `Timeline` which belonged to a timegrid on which
-    iteration was performed.
 -}
-type NumericalSolution = (Timeline, Vector Vars)
+type NumericalSolution = Vector Vars
 {-
     `NumericalMethod` type alias represents any numerical method that
     works on a Cauchy data and a specified timegrid and produces solution.
@@ -42,7 +39,7 @@ iterStep method_creator (t, u) timeline = V.fromList $ go 0 method_creator (t, u
     go _ _ _ [] = []
     go i method (current_t, current_u) (new_t:ts) = current_u : go (i + 1) method new_parameters ts
      where
-        new_parameters = (new_t, (method i) (current_t, current_u))
+        new_parameters = (new_t, method i (current_t, current_u))
 
 {-
     Approximates derivative by its definition.
