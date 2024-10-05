@@ -37,7 +37,7 @@ methodTrapezoid (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (curre
      where
         tau = tau_fn i
         half_step = tau / 2.0
-        recalculated = (approx i) (t, u)
+        recalculated = approx i (t, u)
         middle_parameters = (t + tau, recalculated)
     go = iterStep step
 

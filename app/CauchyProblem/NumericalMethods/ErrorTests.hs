@@ -4,9 +4,7 @@
 -}
 module CauchyProblem.NumericalMethods.ErrorTests where
 
-import CauchyProblem (Vars, CauchyData)
-import CauchyProblem.Times (Time, Timeline)
-import CauchyProblem.NumericalMethods (NumericalMethod)
+import CauchyProblem.Times (Time)
 
 {-
     Returns an infinite list of step functions where `step_i = step_{i-1} * k`.
