@@ -77,4 +77,5 @@ fromTimeSettings settings = Timegrid step (takeWhile (<= end) (create start 0))
     end = t1 settings
     step = step_fn settings
 
+    create :: Time -> Int -> [Time]
     create prev i = prev : create (prev + step i) (i + 1)

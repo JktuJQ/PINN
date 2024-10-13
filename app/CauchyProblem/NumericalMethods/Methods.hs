@@ -4,11 +4,12 @@
 -}
 module CauchyProblem.NumericalMethods.Methods where
 
+import Data.Vector (Vector)
 import qualified Data.Vector as V
 
-import CauchyProblem (CauchyData(CauchyData))
-import CauchyProblem.Times (Timegrid(Timegrid))
-import CauchyProblem.NumericalMethods (NumericalMethod, iterStep, derivativeApprox)
+import CauchyProblem (Vars, Parameters, CauchyData(CauchyData))
+import CauchyProblem.Times (Timeline, Timegrid(Timegrid))
+import CauchyProblem.NumericalMethods (InductiveMethod, NumericalMethod, iterStep, derivativeApprox)
 
 {-
     Euler's explicit first-order numerical method.
@@ -20,7 +21,10 @@ methodEuler :: NumericalMethod
 methodEuler (Timegrid _ []) _ = V.empty
 methodEuler (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
+    approx :: Int -> InductiveMethod
     approx i = derivativeApprox (tau_fn i) fns
+
+    go :: Parameters -> Timeline -> Vector Vars
     go = iterStep approx
 
 {-
@@ -32,13 +36,18 @@ methodTrapezoid :: NumericalMethod
 methodTrapezoid (Timegrid _ []) _ = V.empty
 methodTrapezoid (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
+    approx :: Int -> InductiveMethod
     approx i = derivativeApprox (tau_fn i) fns
+
+    step :: Int -> InductiveMethod
     step i (t, u) = V.zipWith (\u_val f -> u_val + half_step * (f (t, u) + f middle_parameters)) u fns
      where
         tau = tau_fn i
         half_step = tau / 2.0
         recalculated = approx i (t, u)
         middle_parameters = (t + tau, recalculated)
+
+    go :: Parameters -> Timeline -> Vector Vars
     go = iterStep step
 
 {-
@@ -51,6 +60,7 @@ methodRungeKutta :: NumericalMethod
 methodRungeKutta (Timegrid _ []) _ = V.empty
 methodRungeKutta (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
+    step :: Int -> InductiveMethod
     step i (t, u) = u `add` ((tau / 6.0) `mul` k)
      where
         tau = tau_fn i
@@ -58,6 +68,7 @@ methodRungeKutta (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (curr
         add = V.zipWith (+)
         mul n = V.map (*n)
 
+        k, k1, k2, k3, k4 :: Vars
         k1 = V.map (\f -> f (t, u)) fns
         k2 = V.map (\f -> f (new_t, new_u)) fns
          where
@@ -74,4 +85,5 @@ methodRungeKutta (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (curr
 
         k = k1 `add` (2.0 `mul` k2) `add` (2.0 `mul` k3) `add` k4
 
+    go :: Parameters -> Timeline -> Vector Vars
     go = iterStep step

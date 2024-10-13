@@ -31,5 +31,6 @@ x'0 default_value input = if input == "" then default_value else read input
 differentialEquations :: (Double, Double, Double, Double, Double) -> Vector Fn
 differentialEquations (alpha, beta, gamma, delta, omega) = V.fromList [x_eq, x'_eq]
  where
+    x_eq, x'_eq :: Fn
     x_eq (_, vars) = vars!1
     x'_eq (t, vars) = gamma * cos (omega * t) - alpha * (vars!0) - beta * (vars!0) ^ (3 :: Int) - delta * (vars!1)

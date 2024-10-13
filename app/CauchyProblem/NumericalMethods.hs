@@ -36,9 +36,11 @@ type InductiveMethod = Parameters -> Vars
 iterStep :: (Int -> InductiveMethod) -> Parameters -> Timeline -> Vector Vars
 iterStep method_creator (t, u) timeline = V.fromList $ go 0 method_creator (t, u) timeline
  where
+    go :: Int -> (Int -> InductiveMethod) -> Parameters -> Timeline -> [Vars]
     go _ _ _ [] = []
     go i method (current_t, current_u) (new_t:ts) = current_u : go (i + 1) method new_parameters ts
      where
+        new_parameters :: Parameters
         new_parameters = (new_t, method i (current_t, current_u))
 
 {-
@@ -50,4 +52,5 @@ iterStep method_creator (t, u) timeline = V.fromList $ go 0 method_creator (t, u
 derivativeApprox :: Time -> Vector Fn -> InductiveMethod
 derivativeApprox tau fns = approx
  where
+    approx :: InductiveMethod
     approx (t, u) = V.zipWith (\u_val f -> u_val + tau * f (t, u)) u fns
