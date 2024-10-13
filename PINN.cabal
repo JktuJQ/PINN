@@ -27,8 +27,13 @@ executable PINN
                    Task,
 
                    Plotting,
+
+                   PINN,
+                   PINN.Model
+    
     build-depends:    base ^>= 4.17.2.1,
                       vector,
+                      matrix,
                       easyplot >= 1.0 && < 1.1
     hs-source-dirs:   app
     default-language: Haskell2010
