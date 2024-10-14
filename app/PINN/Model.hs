@@ -4,6 +4,8 @@
 -}
 module PINN.Model where
 
+import System.IO
+
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 
@@ -34,6 +36,7 @@ data ActivationFn =
         It is represented by `f(x) = sin(x)` and its derivative is `cos(x)`.
     -}
     Sin
+ deriving Show
 {-
     `getFn` function returns Haskell representation of the activation function.
 -}
@@ -155,3 +158,17 @@ predict model input = M.getMatrixAsVector $ V.foldl' step (M.rowVector input) (l
  where
     step :: Matrix Double -> Layer -> Matrix Double
     step prev layer = M.mapPos (const $ getFn $ activation_fn layer) (prev * weights layer + M.rowVector (bias layer))
+
+saveModel :: SequentialModel -> FilePath -> IO ()
+saveModel model filename = do
+    file <- openFile filename WriteMode
+
+    let write = hPutStrLn file
+    let saveLayer layer = do
+            _ <- write $ show $ weights layer
+            _ <- write $ show $ bias layer
+            _ <- write $ show $ activation_fn layer
+            _ <- write ""
+            return ()
+    
+    V.forM_ (layers model) saveLayer
