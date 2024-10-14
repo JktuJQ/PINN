@@ -11,6 +11,64 @@ import Data.Matrix (Matrix)
 import qualified Data.Matrix as M
 
 {-
+    `ActivationFn` enum lists activation functions that are supported.
+
+    `getFn` and `getDerivative` function allow to extract useful information from this enum.
+-}
+data ActivationFn = 
+    {-
+        `Id` function (also known as linear) is a function that does nothing with its argument.
+
+        It is represented by `f(x) = x` and its derivative is `1`.
+    -}
+    Id |
+    {-
+        `ReLU` function (rectified linear unit) is equal to `Id` when the argument is positive, otherwise it is equal to 0.
+
+        It is represented by `f(x) = max(0, x)` and its derivative is `1` when x >= 0 and `0` when x < 0.
+    -}
+    ReLU |
+    {-
+        `Sin` function is equal to sine of the angle in radians that is equal to the argument.
+
+        It is represented by `f(x) = sin(x)` and its derivative is `cos(x)`.
+    -}
+    Sin
+{-
+    `getFn` function returns Haskell representation of the activation function.
+-}
+getFn :: ActivationFn -> (Double -> Double)
+getFn fn = case fn of
+            Id -> id
+            ReLU -> max 0
+            Sin  -> sin
+{-
+    `getDerivative` function returns Haskell representation of the derivative of activation function.
+-}
+getDerivative :: ActivationFn -> (Double -> Double)
+getDerivative fn = case fn of
+                    Id   -> const 1.0
+                    ReLU -> fromIntegral . fromEnum . (>= 0)
+                    Sin  -> cos
+
+{-
+    `WeightsInitFn` type alias describes function, with which
+    you can initialize `weights` matrix for the `Layer`.
+
+    You may want to initialize matrix with the same value (`const val`),
+    or with random starting values. 
+-}
+type WeightsInitFn = (Int, Int) -> Double
+{-
+    `BiasInitFn` type alias describes function, with which
+    you can initialize `bias` vector for the `Layer`.
+
+    You may want to initialize vector with the same value (`const val`),
+    or with random starting values. 
+-}
+type BiasInitFn = Int -> Double
+
+{-
     `Layer` record datatype represents one layer of a neural network.
 -}
 data Layer = Layer {
@@ -31,9 +89,8 @@ data Layer = Layer {
     {-
         `activation_fn` is an activation function of this layer.
     -}
-    activation_fn :: Double -> Double
+    activation_fn :: ActivationFn
 }
-
 {-
     Returns the amount of neurons in a layer.
 -}
@@ -50,7 +107,6 @@ newtype SequentialModel = SequentialModel {
     -}
     layers :: Vector Layer
 }
-
 {-
     Returns the size of input values that model is compatible for.
 -}
@@ -63,38 +119,39 @@ outputSize :: SequentialModel -> Int
 outputSize = layerSize . V.last . layers
 
 {-
+    `LayerConfiguration` type alias represents info about layer that is needed for construction.
+-}
+type LayerConfiguration = (Int, WeightsInitFn, BiasInitFn, ActivationFn)
+{-
     `assembleModel` function creates correct sequential model
     with layers of specified sizes and with specified activation functions. 
 
     'Correct sequential model' means that sizes of weights and biases of all layers are compatible
     (constrains that are described in the `weights` and `bias` functions of `Layer` datatype were satisfied).
 -}
-assembleModel :: [(Int, Double -> Double)] -> SequentialModel
-assembleModel [] = SequentialModel V.empty
-assembleModel ((size, fn):other_layers) = SequentialModel $ V.fromList (newLayer (1, size) fn : go size other_layers)
+assembleModel :: [LayerConfiguration] -> SequentialModel
+assembleModel xs = SequentialModel $ V.fromList $ go 1 xs
  where
-    newLayer' :: ((Int, Int) -> Double, Int -> Double) -> (Int, Int) -> (Double -> Double) -> Layer
-    newLayer' (weights_fn, bias_fn) (prev_size, layer_size) activation = layer
+    newLayer :: (Int, Int) -> WeightsInitFn -> BiasInitFn -> ActivationFn -> Layer
+    newLayer (prev_size, layer_size) w_fn b_fn a_fn = layer
      where
-        layer_weights = M.matrix prev_size layer_size weights_fn
-        layer_bias = V.generate layer_size bias_fn
-        layer = Layer layer_weights layer_bias activation
-    
-    newLayer :: (Int, Int) -> (Double -> Double) -> Layer
-    newLayer = newLayer' (const 1.0, const 0.0)
+        layer_weights = M.matrix prev_size layer_size w_fn
+        layer_bias = V.generate layer_size b_fn
+        layer = Layer layer_weights layer_bias a_fn
 
-    go :: Int -> [(Int, Double -> Double)] -> [Layer]
+    go :: Int -> [LayerConfiguration] -> [Layer]
     go _ [] = []
-    go prev_size ((layer_size, activation):xs) = newLayer (prev_size, layer_size) activation : go layer_size xs
+    go prev_size ((size, w_fn, b_fn, a_fn):other_layers) = newLayer (prev_size, size) w_fn b_fn a_fn : go size other_layers
 
 {-
     `predict` function uses neural network to predict output values
     based on the state of the model and input values.
 
     `input` vector length must be equal to `inputSize` of model.
+    Resulting vector length is equal to `outputSize` of model.
 -}
 predict :: SequentialModel -> Vector Double -> Vector Double
 predict model input = M.getMatrixAsVector $ V.foldl' step (M.rowVector input) (layers model)
  where
     step :: Matrix Double -> Layer -> Matrix Double
-    step prev layer = M.mapPos (const $ activation_fn layer) (prev * (weights layer) + (M.rowVector $ bias layer))
+    step prev layer = M.mapPos (const $ getFn $ activation_fn layer) (prev * weights layer + M.rowVector (bias layer))
