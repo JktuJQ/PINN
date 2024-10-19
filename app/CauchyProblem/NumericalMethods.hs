@@ -44,13 +44,13 @@ iterStep method_creator (t, u) timeline = V.fromList $ go 0 method_creator (t, u
         new_parameters = (new_t, method i (current_t, current_u))
 
 {-
-    Approximates derivative by its definition.
+    Approximates next step of the method by the derivative definition.
 
     `u' = lim ((u1 - u0) / tau) with tau -> 0`, so if you choose a small enough `tau`
     and you have functions for derivatives you can numerically approximate `u1 ≈ u0 + tau * u'`.
 -}
-derivativeApprox :: Time -> Vector Fn -> InductiveMethod
-derivativeApprox tau fns = approx
+approxNextStep :: Time -> Vector Fn -> InductiveMethod
+approxNextStep tau fns = approx
  where
     approx :: InductiveMethod
     approx (t, u) = V.zipWith (\u_val f -> u_val + tau * f (t, u)) u fns

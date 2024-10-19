@@ -59,7 +59,7 @@ data ActivationFn =
  deriving Show
 instance DifferentiableFn ActivationFn Double Double where
     call fn = case fn of
-                Id -> id
+                Id   -> id
                 ReLU -> max 0
                 Sin  -> sin
     

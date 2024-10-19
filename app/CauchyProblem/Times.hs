@@ -15,6 +15,11 @@ type Time = Double
 type Timeline = [Time]
 
 {-
+    `TimeStepFn` type alias represents function that specifies the time interval that can change.
+-}
+type TimeStepFn = Int -> Time
+
+{-
     `TimeSettings` record datatype describes settings with which a `Timegrid` will be created.
 -}
 data TimeSettings = TimeSettings {
@@ -42,7 +47,7 @@ data TimeSettings = TimeSettings {
         This function can be used to create `Timegrid`s with variable step, but it is still
         very easy to implement `step_fn` for function with constant step - `step_fn = const tau`.
     -}
-    step_fn :: Int -> Time
+    step_fn :: TimeStepFn
 }
 
 {-
@@ -56,7 +61,7 @@ data Timegrid = Timegrid {
 
         `Timegrid` obtains this function from the `TimeSettings` `step_fn`.
     -}
-    tau_fn :: Int -> Time,
+    tau_fn :: TimeStepFn,
 
     {-
         `Timeline` which represents this `Timegrid`.

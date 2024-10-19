@@ -9,20 +9,20 @@ import qualified Data.Vector as V
 
 import CauchyProblem (Vars, Parameters, CauchyData(CauchyData))
 import CauchyProblem.Times (Timeline, Timegrid(Timegrid))
-import CauchyProblem.NumericalMethods (InductiveMethod, NumericalMethod, iterStep, derivativeApprox)
+import CauchyProblem.NumericalMethods (InductiveMethod, NumericalMethod, iterStep, approxNextStep)
 
 {-
     Euler's explicit first-order numerical method.
 
     It is based on the simplest approximation of a derivative which is implemented
-    as `derivativeApprox` in the `CauchyProblem.NumericalMethods` module.
+    as `approxNextStep` in the `CauchyProblem.NumericalMethods` module.
 -}
 methodEuler :: NumericalMethod
 methodEuler (Timegrid _ []) _ = V.empty
 methodEuler (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
     approx :: Int -> InductiveMethod
-    approx i = derivativeApprox (tau_fn i) fns
+    approx i = approxNextStep (tau_fn i) fns
 
     go :: Parameters -> Timeline -> Vector Vars
     go = iterStep approx
@@ -37,7 +37,7 @@ methodTrapezoid (Timegrid _ []) _ = V.empty
 methodTrapezoid (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
     approx :: Int -> InductiveMethod
-    approx i = derivativeApprox (tau_fn i) fns
+    approx i = approxNextStep (tau_fn i) fns
 
     step :: Int -> InductiveMethod
     step i (t, u) = V.zipWith (\u_val f -> u_val + half_step * (f (t, u) + f middle_parameters)) u fns

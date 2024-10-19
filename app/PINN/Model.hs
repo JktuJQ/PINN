@@ -71,15 +71,15 @@ newtype SequentialModel = SequentialModel {
     layers :: Vector Layer
 }
 {-
-    Returns the size of input values that model is compatible for.
+    Returns the input layer of the model.
 -}
-inputSize :: SequentialModel -> Int
-inputSize = layerSize . V.head . layers
+inputLayer :: SequentialModel -> Layer
+inputLayer = V.head . layers
 {-
-    Returns the size of output values that model is compatible for.
+    Returns the output layer of the model.
 -}
-outputSize :: SequentialModel -> Int
-outputSize = layerSize . V.last . layers
+outputLayer :: SequentialModel -> Layer
+outputLayer = V.last . layers
 
 {-
     `LayerConfiguration` type alias represents info about layer that is needed for construction.
@@ -119,6 +119,9 @@ predict model input = M.getMatrixAsVector $ V.foldl' step (M.rowVector input) (l
     step :: Matrix Double -> Layer -> Matrix Double
     step prev layer = M.mapPos (const $ call $ activation_fn layer) (prev * weights layer + M.rowVector (bias layer))
 
+{-
+    `saveModel` function saves the model data to file for it to be restored later.
+-}
 saveModel :: SequentialModel -> FilePath -> IO ()
 saveModel model filename = do
     file <- openFile filename WriteMode
