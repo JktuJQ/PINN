@@ -12,47 +12,7 @@ import qualified Data.Vector as V
 import Data.Matrix (Matrix)
 import qualified Data.Matrix as M
 
-{-
-    `ActivationFn` enum lists activation functions that are supported.
-
-    `getFn` and `getDerivative` function allow to extract useful information from this enum.
--}
-data ActivationFn = 
-    {-
-        `Id` function (also known as linear) is a function that does nothing with its argument.
-
-        It is represented by `f(x) = x` and its derivative is `1`.
-    -}
-    Id |
-    {-
-        `ReLU` function (rectified linear unit) is equal to `Id` when the argument is positive, otherwise it is equal to 0.
-
-        It is represented by `f(x) = max(0, x)` and its derivative is `1` when x >= 0 and `0` when x < 0.
-    -}
-    ReLU |
-    {-
-        `Sin` function is equal to sine of the angle in radians that is equal to the argument.
-
-        It is represented by `f(x) = sin(x)` and its derivative is `cos(x)`.
-    -}
-    Sin
- deriving Show
-{-
-    `getFn` function returns Haskell representation of the activation function.
--}
-getFn :: ActivationFn -> (Double -> Double)
-getFn fn = case fn of
-            Id -> id
-            ReLU -> max 0
-            Sin  -> sin
-{-
-    `getDerivative` function returns Haskell representation of the derivative of activation function.
--}
-getDerivative :: ActivationFn -> (Double -> Double)
-getDerivative fn = case fn of
-                    Id   -> const 1.0
-                    ReLU -> fromIntegral . fromEnum . (>= 0)
-                    Sin  -> cos
+import PINN.DifferentiableFns (DifferentiableFn(call), ActivationFn)
 
 {-
     `WeightsInitFn` type alias describes function, with which
@@ -157,7 +117,7 @@ predict :: SequentialModel -> Vector Double -> Vector Double
 predict model input = M.getMatrixAsVector $ V.foldl' step (M.rowVector input) (layers model)
  where
     step :: Matrix Double -> Layer -> Matrix Double
-    step prev layer = M.mapPos (const $ getFn $ activation_fn layer) (prev * weights layer + M.rowVector (bias layer))
+    step prev layer = M.mapPos (const $ call $ activation_fn layer) (prev * weights layer + M.rowVector (bias layer))
 
 saveModel :: SequentialModel -> FilePath -> IO ()
 saveModel model filename = do

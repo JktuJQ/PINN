@@ -29,6 +29,7 @@ executable PINN
                    Plotting,
 
                    PINN,
+                   PINN.DifferentiableFns,
                    PINN.Model
     
     build-depends:    base ^>= 4.17.2.1,
