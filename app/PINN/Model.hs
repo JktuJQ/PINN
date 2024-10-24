@@ -146,10 +146,10 @@ _predict' :: SequentialModel -> Matrix Double -> Vector BackPropagationStepData
 _predict' model input = V.scanl' step (M.zero 0 0, input) (layers model)
  where
     step :: BackPropagationStepData -> Layer -> BackPropagationStepData
-    step (_, prev) layer = (predicted, activated)
+    step (_, prev) (Layer w b act_fn) = (predicted, activated)
      where
-        predicted = prev * weights layer + M.rowVector (bias layer)
-        activated = M.mapPos (const $ call $ activation_fn layer) predicted
+        predicted = prev * w + M.matrix (M.nrows prev) (M.ncols w) (\(_, j) -> b V.! j)
+        activated = M.mapPos (const $ call $ act_fn) predicted
 {-
     `predict'` function processes `(n, i)` matrix through the neural network and returns the `(n, o)` output,
     where `i = inputSize model` and `o = outputSize model`.
