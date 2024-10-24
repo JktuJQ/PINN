@@ -67,3 +67,32 @@ instance DifferentiableFn ActivationFn Double Double where
                         Id   -> const 1.0
                         ReLU -> fromIntegral . fromEnum . (>= 0)
                         Sin  -> cos
+
+{-
+    `LossFn` enum lists loss functions that are supported.
+
+    It is an instance of `DifferentiableFn` typeclass, which supplies functions to call and differentiate those functions.
+-}
+data LossFn =
+    {-
+        `SSR` function (sum of squared residuals) is a function
+        that computes the sum of squares of elements of the difference of two vectors.
+
+        It is represented by `f(original, predicted) = sum(from i=1 to n) of (original_i - predicted_i)^2` where `n = length of original`.
+    -}
+    SSR |
+    {-
+        `MSE` function (mean squared error) is a function
+        that computes the mean of the sum of squares of elements of the difference of two vectors.
+
+        It is represented by `f(original, predicted) = SSR(original, predicted) / n` where `n = length of original`.
+    -}
+    MSE
+instance DifferentiableFn LossFn (Vector Double, Vector Double) Double where
+    call fn args = case fn of
+                    SSR -> V.sum $ V.map (^ (2 :: Int)) $ uncurry (V.zipWith (-)) args
+                    MSE -> (call SSR args) / (fromIntegral $ V.length $ fst args)
+
+    derivative fn args = case fn of
+                            SSR -> 2.0 * (V.sum $ uncurry (V.zipWith (-)) args)
+                            MSE -> (derivative SSR args) / (fromIntegral $ V.length $ fst args)
