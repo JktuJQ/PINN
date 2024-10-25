@@ -1,5 +1,5 @@
 {- Those language pragmas are needed to create and instantiate `Optimiser` typeclass -}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, FunctionalDependencies #-}
 
 {-
     `PINN.Optimisers` submodule implements different optimisers for the sequential model
@@ -19,7 +19,7 @@ import PINN.Model (Layer(..), SequentialModel(..))
     `Optimiser` typeclass defines optimiser - algorithm that is able
     to improve model by minimising the loss function.
 -}
-class Optimiser optimiser params where
+class Optimiser optimiser params | optimiser -> params where
     {-
         `initializeParams` function returns initial layer specific parameters
         which are compatible with the model.

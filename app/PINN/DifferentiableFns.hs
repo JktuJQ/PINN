@@ -1,5 +1,5 @@
 {- Those language pragmas are needed to create and instantiate `DifferentiableFn` typeclass -}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, FunctionalDependencies #-}
 
 {-
     `PINN.DifferentiableFns` submodule provides `DifferentiableFn` typeclass which
@@ -16,7 +16,7 @@ import qualified Data.Vector as V
 
     `DifferentiableFn` must implement `call` and `derivative` functions.
 -}
-class DifferentiableFn fn args return_type where
+class DifferentiableFn fn args return_type | fn -> args return_type where
     {-
         Calls function with supplied arguments.
 
