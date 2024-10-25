@@ -31,7 +31,7 @@ executable PINN
                    PINN,
                    PINN.DifferentiableFns,
                    PINN.Model,
-                   PINN.Optimiser
+                   PINN.Optimisers
     
     build-depends:    base ^>= 4.17.2.1,
                       vector,

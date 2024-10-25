@@ -1,6 +1,7 @@
 {-
-    `PINN.Model` submodule implements simple sequential neural network model,
-    which is going to be used to solve Duffing equation. 
+    `PINN.Model` submodule implements simple sequential neural network model.
+    
+    It also provides `Layer` datatype that holds weights and bias of each single part of model.
 -}
 module PINN.Model where
 
@@ -149,7 +150,7 @@ _predict' model input = V.scanl' step (M.zero 0 0, input) (layers model)
     step (_, prev) (Layer w b act_fn) = (predicted, activated)
      where
         predicted = prev * w + M.matrix (M.nrows prev) (M.ncols w) (\(_, j) -> b V.! j)
-        activated = M.mapPos (const $ call $ act_fn) predicted
+        activated = M.mapPos (const $ call act_fn) predicted
 {-
     `predict'` function processes `(n, i)` matrix through the neural network and returns the `(n, o)` output,
     where `i = inputSize model` and `o = outputSize model`.

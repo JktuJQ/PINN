@@ -37,7 +37,7 @@ class DifferentiableFn fn args return_type where
 
     It is an instance of `DifferentiableFn` typeclass, which supplies functions to call and differentiate those functions.
 -}
-data ActivationFn = 
+data ActivationFn =
     {-
         `Id` function (also known as linear) is a function that does nothing with its argument.
 
@@ -62,7 +62,7 @@ instance DifferentiableFn ActivationFn Double Double where
                 Id   -> id
                 ReLU -> max 0
                 Sin  -> sin
-    
+
     derivative fn = case fn of
                         Id   -> const 1.0
                         ReLU -> fromIntegral . fromEnum . (>= 0)
@@ -90,9 +90,9 @@ data LossFn =
     MSE
 instance DifferentiableFn LossFn (Vector Double, Vector Double) Double where
     call fn args = case fn of
-                    SSR -> V.sum $ V.map (^ (2 :: Int)) $ uncurry (V.zipWith (-)) args
-                    MSE -> (call SSR args) / (fromIntegral $ V.length $ fst args)
+                       SSR -> V.sum $ V.map (^ (2 :: Int)) $ uncurry (V.zipWith (-)) args
+                       MSE -> call SSR args / fromIntegral (V.length $ fst args)
 
     derivative fn args = case fn of
-                            SSR -> 2.0 * (V.sum $ uncurry (V.zipWith (-)) args)
-                            MSE -> (derivative SSR args) / (fromIntegral $ V.length $ fst args)
+                             SSR -> 2.0 * V.sum (uncurry (V.zipWith (-)) args)
+                             MSE -> derivative SSR args / fromIntegral (V.length $ fst args)

@@ -2,10 +2,10 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
 {-
-    `PINN.Optimiser` submodule implements stochastic gradient descent
-    optimiser for the sequential PINN model. 
+    `PINN.Optimisers` submodule implements different optimisers for the sequential model
+    that define the update rule at each step of training.
 -}
-module PINN.Optimiser where
+module PINN.Optimisers where
 
 import Data.Vector(Vector)
 import qualified Data.Vector as V
@@ -65,7 +65,7 @@ type SGDVelocities = (Matrix Double, Vector Double)
 instance Optimiser SGD SGDVelocities where
     initializeParams _ model = V.map initializeWithOnes (layers model)
      where
-        initializeWithOnes :: Layer -> (Matrix Double, Vector Double)
+        initializeWithOnes :: Layer -> SGDVelocities
         initializeWithOnes (Layer w b _) = (M.matrix (M.nrows w) (M.ncols w) (const 1.0), V.replicate (V.length b) 1.0)
     
     updateStep (SGD beta nesterov) (vdw, vdb) lr (dw, db) (Layer w b act_fn) = (Layer new_w new_b act_fn, (new_vdw, new_vdb))
