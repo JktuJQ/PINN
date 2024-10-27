@@ -95,4 +95,4 @@ instance DifferentiableFn LossFn (Vector Double, Vector Double) (Vector Double) 
 
     derivative fn args = case fn of
                              SSR -> V.map ((0-) . (2*)) $ uncurry (V.zipWith (-)) args
-                             MSE -> V.map ((0-) . (/ fromIntegral (V.length $ fst args))) $ derivative SSR args
+                             MSE -> V.map (/ fromIntegral (V.length $ fst args)) $ derivative SSR args
