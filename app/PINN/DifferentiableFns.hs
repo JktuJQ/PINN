@@ -88,11 +88,11 @@ data LossFn =
         It is represented by `f(original, predicted) = SSR(original, predicted) / n` where `n = length of original`.
     -}
     MSE
-instance DifferentiableFn LossFn (Vector Double, Vector Double) Double where
+instance DifferentiableFn LossFn (Vector Double, Vector Double) (Vector Double) where
     call fn args = case fn of
-                       SSR -> V.sum $ V.map (^ (2 :: Int)) $ uncurry (V.zipWith (-)) args
-                       MSE -> call SSR args / fromIntegral (V.length $ fst args)
+                       SSR -> V.map (^ (2 :: Int)) $ uncurry (V.zipWith (-)) args
+                       MSE -> V.map (/ fromIntegral (V.length $ fst args)) $ call SSR args 
 
     derivative fn args = case fn of
-                             SSR -> 2.0 * V.sum (uncurry (V.zipWith (-)) args)
-                             MSE -> derivative SSR args / fromIntegral (V.length $ fst args)
+                             SSR -> V.map ((0-) . (2*)) $ uncurry (V.zipWith (-)) args
+                             MSE -> V.map ((0-) . (/ fromIntegral (V.length $ fst args))) $ derivative SSR args

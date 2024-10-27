@@ -31,9 +31,11 @@ executable PINN
                    PINN,
                    PINN.DifferentiableFns,
                    PINN.Model,
-                   PINN.Optimisers
+                   PINN.Optimisers,
+                   PINN.Training
     
     build-depends:    base ^>= 4.17.2.1,
+                      random,
                       vector,
                       matrix,
                       easyplot >= 1.0 && < 1.1

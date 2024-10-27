@@ -129,7 +129,7 @@ assembleModel input_size xs = SequentialModel $ V.fromList $ go input_size xs
 -}
 type BackPropagationStepData = (Matrix Double, Matrix Double)
 {-
-    `_predict'` function processes `(n, i)` matrix through the neural network and, saving all the intermediate steps,
+    `_predict'` function processes `(n, i)` matrix through the layers and, saving all the intermediate steps,
     returns the `(n, o)` output,
     where `i = inputSize model` and `o = outputSize model`.
     If the `input` matrix does not have `inputSize model` columns, the error will be thrown.
@@ -143,14 +143,15 @@ type BackPropagationStepData = (Matrix Double, Matrix Double)
     `_predict'` specializes on memorizing intermediate steps which then are used for the back propagation of error.
     First matrix in the first back propagation step is always empty matrix.
 -}
-_predict' :: SequentialModel -> Matrix Double -> Vector BackPropagationStepData
-_predict' model input = V.scanl' step (M.zero 0 0, input) (layers model)
+_predict' :: [Layer] -> Matrix Double -> Vector BackPropagationStepData
+_predict' model_layers input = V.fromList $ scanl step (M.zero 0 0, input) model_layers
  where
     step :: BackPropagationStepData -> Layer -> BackPropagationStepData
     step (_, prev) (Layer w b act_fn) = (predicted, activated)
      where
         predicted = prev * w + M.matrix (M.nrows prev) (M.ncols w) (\(_, j) -> b V.! j)
         activated = M.mapPos (const $ call act_fn) predicted
+
 {-
     `predict'` function processes `(n, i)` matrix through the neural network and returns the `(n, o)` output,
     where `i = inputSize model` and `o = outputSize model`.
@@ -164,7 +165,7 @@ _predict' model input = V.scanl' step (M.zero 0 0, input) (layers model)
     If you do not want to process several `x`s at the same time, you should prefer using `predict` function.
 -}
 predict' :: SequentialModel -> Matrix Double -> Matrix Double
-predict' model input = snd $ V.last $ _predict' model input
+predict' model input = snd $ V.last $ _predict' (V.toList $ layers model) input
 {-
     `predict` function processes vector with length `i` through the neural network
     and returns the output as a vector of `o` size,
@@ -174,7 +175,7 @@ predict' model input = snd $ V.last $ _predict' model input
     If you want to process several vectors at the same time, you should prefer using `predict'` function.
 -}
 predict :: SequentialModel -> Vector Double -> Vector Double
-predict model input = M.getCol 1 $ predict' model (M.rowVector input)
+predict model input = M.getRow 1 $ predict' model (M.rowVector input)
 
 {-
     `saveModel` function saves the model data to file for it to be restored later.
