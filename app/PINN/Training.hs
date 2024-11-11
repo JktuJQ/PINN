@@ -50,8 +50,8 @@ shuffleDataset (dataset, seed0) = runST $ do
      where
         go size seed = if size <= 1 then return seed
                        else do
-                           let (swap_i, new_seed) = randomR (1, size) seed
-                           _ <- MV.swap vector swap_i size
+                           let (swap_i, new_seed) = randomR (0, size - 1) seed
+                           _ <- MV.swap vector swap_i (size - 1)
                            go (size - 1) new_seed
 {-
     `splitToBatches` function splits dataset to a list of smaller datasets (batches).
@@ -63,11 +63,14 @@ splitToBatches size dataset = V.fromList $ go dataset
     groupInBatch vector = (tl, tr)
      where
         rows = V.length vector
-        cols = V.length $ fst $ V.head vector
+        input_cols = V.length $ fst $ V.head vector
 
-        group (i, j) = (if j <= cols then fst else snd) (vector ! i) ! (if j <= cols then j else j - cols)
+        group (i', j') = (if j < input_cols then fst else snd) (vector ! i) ! (j `mod` input_cols)
+         where
+            i = i' - 1
+            j = j' - 1
 
-        (tl, tr, _, _) = M.splitBlocks rows cols (M.matrix rows (2 * cols) group)
+        (tl, tr, _, _) = M.splitBlocks rows input_cols (M.matrix rows (input_cols + V.length (snd $ V.head vector)) group)
 
     go vector = if V.length vector <= size then [groupInBatch vector]
                 else
@@ -112,10 +115,10 @@ train :: (Optimiser optimiser params) => SequentialModel -> optimiser -> (Datase
 train model optimiser (dataset, seed0) (TrainingHyperparameters e lr loss size) = runST $ do
     model_layers <- V.thaw $ layers model
     layer_parameters <- V.thaw $ initializeParams optimiser model
-    losses <- MV.new (e * (V.length dataset `div` size + 1))
+    losses <- MV.new (e * (V.length dataset `div` size))
 
     seed <- newSTRef seed0
-    iteration <- newSTRef 1
+    iteration <- newSTRef 0
     forM_ [1..e] $ \_ -> do
         current_seed <- readSTRef seed
         let (shuffled_dataset, new_seed) = shuffleDataset (dataset, current_seed)
@@ -131,18 +134,18 @@ train model optimiser (dataset, seed0) (TrainingHyperparameters e lr loss size) 
             let predicted_output = snd $ V.last back_propagation
 
             let batches_rows = [(M.getRow row batch_output, M.getRow row predicted_output) | row <- [1..(M.nrows batch_output)]]
-            MV.write losses i (sum $ map (V.sum . call loss) batches_rows)
+            MV.write losses (i - 1) (sum $ map (V.sum . call loss) batches_rows)
             let loss_derivative = M.fromLists $ map (V.toList . derivative loss) batches_rows
 
             let lr_k = lr i
 
             layer_error <- newSTRef loss_derivative
-            forM_ (reverse [1..(MV.length model_layers)]) $ \layer_index -> do
+            forM_ (reverse [0..(MV.length model_layers - 1)]) $ \layer_index -> do
                 current_layer <- MV.read model_layers layer_index
 
                 dEdH <- readSTRef layer_error
-                let dEdT = M.elementwise (*) dEdH (M.mapPos (const $ derivative $ activation_fn current_layer) (fst $ back_propagation V.! layer_index))
-                let dEdW = M.transpose (snd $ back_propagation V.! (layer_index - 1)) * dEdT
+                let dEdT = M.elementwise (*) dEdH (M.mapPos (const $ derivative $ activation_fn current_layer) (fst $ back_propagation ! (layer_index + 1)))
+                let dEdW = M.transpose (snd $ back_propagation ! layer_index) * dEdT
                 let dEdB = M.getRow 1 dEdT
                 writeSTRef layer_error (dEdT * M.transpose (weights current_layer))
 

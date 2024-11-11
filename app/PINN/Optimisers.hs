@@ -21,7 +21,7 @@ import PINN.Model (Layer(..), SequentialModel(..))
 -}
 class Optimiser optimiser params | optimiser -> params where
     {-
-        `initializeParams` function returns initial layer specific parameters
+        `initializeParams` function returns initial layer-specific parameters
         which are compatible with the model.
 
         Optimiser might need some additional information that will be available through the whole training.
@@ -61,6 +61,9 @@ data SGD = SGD {
     -}
     nesterov_momentum :: Bool
 }
+{-
+    Layer-specific params for SGD optimiser.
+-}
 type SGDVelocities = (Matrix Double, Vector Double)
 instance Optimiser SGD SGDVelocities where
     initializeParams _ model = V.map initializeWithOnes (layers model)

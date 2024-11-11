@@ -37,7 +37,7 @@ data Layer = Layer {
         `activation_fn` is an activation function of this layer.
     -}
     activation_fn :: ActivationFn
-}
+} deriving Show
 {-
     Returns the amount of neurons in a layer.
 -}
@@ -53,7 +53,7 @@ newtype SequentialModel = SequentialModel {
         `layers` is a vector of layers which this model consists of.
     -}
     layers :: Vector Layer
-}
+} deriving Show
 {-
     Returns the size of the input that the model is compatible for.
 
@@ -149,7 +149,7 @@ _predict' model_layers input = V.fromList $ scanl step (M.zero 0 0, input) model
     step :: BackPropagationStepData -> Layer -> BackPropagationStepData
     step (_, prev) (Layer w b act_fn) = (predicted, activated)
      where
-        predicted = prev * w + M.matrix (M.nrows prev) (M.ncols w) (\(_, j) -> b V.! j)
+        predicted = prev * w + M.matrix (M.nrows prev) (M.ncols w) (\(_, j) -> b V.! (j - 1))
         activated = M.mapPos (const $ call act_fn) predicted
 
 {-
