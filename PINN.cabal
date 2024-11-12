@@ -32,7 +32,8 @@ executable PINN
                    PINN.DifferentiableFns,
                    PINN.Model,
                    PINN.Optimisers,
-                   PINN.Training
+                   PINN.Training,
+                   PINN.Testing
     
     build-depends:    base ^>= 4.17.2.1,
                       random,
