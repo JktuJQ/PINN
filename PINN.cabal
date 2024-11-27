@@ -39,7 +39,8 @@ executable PINN
                       random,
                       vector,
                       matrix,
-                      containers,
+                      hashable,
+                      unordered-containers,
                       easyplot >= 1.0 && < 1.1
     hs-source-dirs:   app
     default-language: Haskell2010

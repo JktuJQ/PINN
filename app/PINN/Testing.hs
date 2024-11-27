@@ -4,7 +4,6 @@
 -}
 module PINN.Testing where
 
-import Data.Maybe
 import System.Random
 
 import Graphics.EasyPlot
@@ -44,8 +43,7 @@ data (Plot a) => TestPlots a = TestPlots {
 plotTest :: (Plot a) => String -> TestPlots a -> IO ()
 plotTest name (TestPlots orig pr loss) = do
     let plot_names = ["tests/" ++ plot_name ++ "_" ++ name ++ ".png" | plot_name <- ["original", "predicted", "losses"]]
-    _ <- mapM_ (\(str, p) -> if isJust p then plot (PNG str) (fromJust p) else return False) (zip plot_names [orig, pr, loss])
-    return ()
+    mapM_ (\(str, p) -> maybe (return False) (plot (PNG str)) p) (zip plot_names [orig, pr, loss])
 
 {-
     `testXOR` function tries to approximate `XOR` function (0 0 -> 0, 0 1 -> 1, 1 0 -> 1, 1 1 -> 0).
@@ -59,16 +57,16 @@ testXOR = (trained_model, TestPlots Nothing Nothing (Just losses_plot))
         (V.fromList [0.0, 1.0], V.singleton 1.0),
         (V.fromList [1.0, 1.0], V.singleton 0.0)
                          ]
-    
+
     model = assembleModel 2 [
             (1, const $ const 1.0, const $ const 0.0, Sin),
             (1, const $ const 1.0, const $ const 0.0, Sin)
                             ]
-    
+
     sgd = SGD 0.5 False
     hyperparams = TrainingHyperparameters 100 (const 0.01) SSR 4
     (trained_model, loss, _) = train model sgd (dataset, mkStdGen 1) hyperparams
-        
+
     losses_plot = Data2D [Title "loss", Style Lines] [] [(fromIntegral i, loss ! i) | i <- [0..(V.length loss - 1)]]
 
 {-
@@ -85,7 +83,7 @@ testXSquared = (trained_model, TestPlots (Just original_plot) (Just predicted_pl
             (1, const $ const 1.0, const $ const 0.0, Sin),
             (1, const $ const 1.0, const $ const 0.0, Id)
                             ]
-    
+
     sgd = SGD 0.5 False
     hyperparams = TrainingHyperparameters 1000 (const 0.01) SSR 1
     (trained_model, loss, _) = train model sgd (dataset, mkStdGen 1) hyperparams
@@ -102,7 +100,7 @@ testTrigonometry = (trained_model, TestPlots (Just original_plot) (Just predicte
  where
     range = [(-(2.0 * pi)),((-(2.0 * pi)) + 0.1)..(2.0 * pi)]
 
-    dataset = V.map (\t -> (V.singleton t, V.singleton (sin(2.0 * cos t + 3.0) + 2.5))) (V.fromList range)
+    dataset = V.map (\t -> (V.singleton t, V.singleton (sin (2.0 * cos t + 3.0) + 2.5))) (V.fromList range)
 
     model = assembleModel 1 [
             (1, const $ const 1.0, const $ const 0.0, Sin),
@@ -110,7 +108,7 @@ testTrigonometry = (trained_model, TestPlots (Just original_plot) (Just predicte
             (1, const $ const 1.0, const $ const 0.0, Sin),
             (1, const $ const 1.0, const $ const 0.0, Id)
                             ]
-    
+
     sgd = SGD 0.0 False
     hyperparams = TrainingHyperparameters 1000 (const 0.001) SSR 1
     (trained_model, loss, _) = train model sgd (dataset, mkStdGen 1) hyperparams

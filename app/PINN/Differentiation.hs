@@ -11,14 +11,15 @@ module PINN.Differentiation where
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 
-import Data.Map (Map)
-import qualified Data.Map as M
+import Data.Hashable (Hashable(..))
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HM
 
 {-
     `Symbol` record datatype represents symbolic variable.
     It is needed to implement symbolic differentiation.
 
-    `Symbol a` implements `Ord`, `Eq` and partly `Num` typeclasses if `a` implements them.
+    `Symbol a` implements `Eq` and partly `Num` typeclasses if `a` implements them.
 -}
 data Symbol a = Symbol {
     {-
@@ -30,48 +31,76 @@ data Symbol a = Symbol {
     -}
     gradients :: [(Symbol a, Symbol a -> Symbol a)]
 }
+
 instance Eq a => Eq (Symbol a) where
     (==) a b = (value a) == (value b)
-instance Ord a => Ord (Symbol a) where
-    compare a b = compare (value a) (value b)
+instance Hashable a => Hashable (Symbol a) where
+    hashWithSalt salt (Symbol v grads) = salt `hashWithSalt` v `hashWithSalt` map fst grads
 
 {-
     `Symbolic` typeclass defines types that are able to be treated symbolically.
 
     There is a blanket instance for `Symbol a` if `a` is `Symbolic`.
 -}
-class Ord a => Symbolic a where
+class (Hashable a) => Symbolic a where
     {-
         Returns value that can be thought of as zero.
     -}
-    constZero :: a -> a
+    constZero :: Symbol a
     {-
         Returns value that can be thought of as one.
     -}
-    constOne :: a -> a
+    constOne :: Symbol a
+
+    {-
+        Creates new symbol from constant
+    -}
+    newSymbol :: a -> Symbol a
+    newSymbol x = Symbol x []
 
     {-
         Symbolic addition.
     -}
-    add :: a -> a -> a
-instance Symbolic a => Symbolic (Symbol a) where
-    constZero x = Symbol (constZero (value x)) []
-    constOne x = Symbol (constOne (value x)) []
+    add :: Symbol a -> Symbol a -> Symbol a
 
-    add a b = Symbol (value a `add` value b) [(a, \path -> path), (b, \path -> path)]
+    {-
+        Symbolic multiplication.
+    -}
+    mul :: Symbol a -> Symbol a -> Symbol a
 
+    {-
+        Symbolic unary negation.
+    -}
+    neg :: Symbol a -> Symbol a
+    neg x = constZero `sub` x
+    {-
+        Symbolic difference.
+    -}
+    sub :: Symbol a -> Symbol a -> Symbol a
+    sub a b = a `add` (neg b)
+instance Symbolic Double where
+    constZero = Symbol 0.0 []
+    constOne = Symbol 1.0 []
+
+    add a b = Symbol (value a + value b) [(a, \path -> path), (b, \path -> path)]
+
+    mul a b = Symbol (value a * value b) [(a, \path -> path `mul` b), (b, \path -> path `mul` a)]
+
+    neg x = Symbol (-(value x)) [(x, \path -> neg path)]
+    sub a b = Symbol (value a - value b) [(a, \path -> path), (b, \path -> neg path)]
+ 
 {-
     `getGradients` function obtains the map of derivatives of given variable with respect to other variables.
 -}
-getGradients :: (Symbolic a) => Symbol a -> Map (Symbol a) (Symbol a)
-getGradients variable = traverseGraph (gradients variable) (M.singleton variable (constOne variable)) (constOne variable)
+getGradients :: (Symbolic a) => Symbol a -> HashMap (Symbol a) (Symbol a)
+getGradients variable = traverseGraph (gradients variable) (HM.singleton variable constOne) constOne
  where
-    traverseGraph :: (Symbolic a) => [(Symbol a, Symbol a -> Symbol a)] -> Map (Symbol a) (Symbol a) -> Symbol a -> Map (Symbol a) (Symbol a)
+    traverseGraph :: (Symbolic a) => [(Symbol a, Symbol a -> Symbol a)] -> HashMap (Symbol a) (Symbol a) -> Symbol a -> HashMap (Symbol a) (Symbol a)
     traverseGraph ((child, applyGradient):xs) grads path = traverseGraph xs down_grads path
      where
         child_path = applyGradient path
         
-        new_grads = M.alter (addPaths child_path) child grads
+        new_grads = HM.alter (addPaths child_path) child grads
          where
             addPaths :: (Symbolic a) => Symbol a -> Maybe (Symbol a) -> Maybe (Symbol a)
             addPaths a (Just b) = Just (a `add` b)
