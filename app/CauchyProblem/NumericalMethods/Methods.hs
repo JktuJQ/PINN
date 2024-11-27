@@ -19,10 +19,10 @@ import CauchyProblem.NumericalMethods (InductiveMethod, NumericalMethod, iterSte
 -}
 methodEuler :: NumericalMethod
 methodEuler (Timegrid _ []) _ = V.empty
-methodEuler (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
+methodEuler (Timegrid tauFn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
     approx :: Int -> InductiveMethod
-    approx i = approxNextStep (tau_fn i) fns
+    approx i = approxNextStep (tauFn i) fns
 
     go :: Parameters -> Timeline -> Vector Vars
     go = iterStep approx
@@ -34,15 +34,15 @@ methodEuler (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t
 -}
 methodTrapezoid :: NumericalMethod
 methodTrapezoid (Timegrid _ []) _ = V.empty
-methodTrapezoid (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
+methodTrapezoid (Timegrid tauFn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
     approx :: Int -> InductiveMethod
-    approx i = approxNextStep (tau_fn i) fns
+    approx i = approxNextStep (tauFn i) fns
 
     step :: Int -> InductiveMethod
     step i (t, u) = V.zipWith (\u_val f -> u_val + half_step * (f (t, u) + f middle_parameters)) u fns
      where
-        tau = tau_fn i
+        tau = tauFn i
         half_step = tau / 2.0
         recalculated = approx i (t, u)
         middle_parameters = (t + tau, recalculated)
@@ -58,12 +58,12 @@ methodTrapezoid (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (curre
 -}
 methodRungeKutta :: NumericalMethod
 methodRungeKutta (Timegrid _ []) _ = V.empty
-methodRungeKutta (Timegrid tau_fn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
+methodRungeKutta (Timegrid tauFn (current_t:ts)) (CauchyData u0 fns) = go (current_t, u0) ts
  where
     step :: Int -> InductiveMethod
     step i (t, u) = u `add` ((tau / 6.0) `mul` k)
      where
-        tau = tau_fn i
+        tau = tauFn i
         
         add = V.zipWith (+)
         mul n = V.map (*n)

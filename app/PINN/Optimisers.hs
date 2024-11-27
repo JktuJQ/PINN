@@ -71,10 +71,10 @@ instance Optimiser SGD SGDVelocities where
         initializeWithOnes :: Layer -> SGDVelocities
         initializeWithOnes (Layer w b _) = (M.matrix (M.nrows w) (M.ncols w) (const 1.0), V.replicate (V.length b) 1.0)
     
-    updateStep (SGD beta nesterov) (vdw, vdb) lr (dw, db) (Layer w b act_fn) = (Layer new_w new_b act_fn, (new_vdw, new_vdb))
+    updateStep (SGD beta nesterov) (vdw, vdb) lr (dw, db) (Layer w b actFn) = (Layer new_w new_b actFn, (new_vdw, new_vdb))
      where
         newVelocity :: (a -> a -> a) -> (Double -> a -> a) -> a -> a -> a
-        newVelocity diff_fn mul_fn gradient velocity = diff_fn (mul_fn beta velocity) (mul_fn lr gradient)
+        newVelocity diffFn mulFn gradient velocity = diffFn (mulFn beta velocity) (mulFn lr gradient)
         
         w_velocity :: Matrix Double -> Matrix Double
         w_velocity = newVelocity (-) (M.mapPos . const . (*)) dw
@@ -85,7 +85,7 @@ instance Optimiser SGD SGDVelocities where
         new_vdb = b_velocity vdb
 
         rule :: (a -> a) -> a -> a
-        rule velocity_fn velocity = if nesterov then velocity_fn velocity else velocity
+        rule velocityFn velocity = if nesterov then velocityFn velocity else velocity
 
         w_sum = M.elementwise (+) w
         b_sum = V.zipWith (+) b

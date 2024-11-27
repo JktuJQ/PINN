@@ -34,9 +34,9 @@ data Layer = Layer {
     bias :: Vector Double,
 
     {-
-        `activation_fn` is an activation function of this layer.
+        `activationFn` is an activation function of this layer.
     -}
-    activation_fn :: ActivationFn
+    activationFn :: ActivationFn
 } deriving Show
 {-
     Returns the amount of neurons in a layer.
@@ -110,15 +110,15 @@ assembleModel :: Int -> [LayerConfiguration] -> SequentialModel
 assembleModel input_size xs = SequentialModel $ V.fromList $ go input_size xs
  where
     newLayer :: (Int, Int) -> WeightsInitFn -> BiasInitFn -> ActivationFn -> Layer
-    newLayer (prev_size, layer_size) w_fn b_fn a_fn = layer
+    newLayer (prev_size, layer_size) wFn bFn aFn = layer
      where
-        layer_weights = M.matrix prev_size layer_size (w_fn (prev_size, layer_size))
-        layer_bias = V.generate layer_size (b_fn layer_size)
-        layer = Layer layer_weights layer_bias a_fn
+        layer_weights = M.matrix prev_size layer_size (wFn (prev_size, layer_size))
+        layer_bias = V.generate layer_size (bFn layer_size)
+        layer = Layer layer_weights layer_bias aFn
 
     go :: Int -> [LayerConfiguration] -> [Layer]
     go _ [] = []
-    go prev_size ((size, w_fn, b_fn, a_fn):other_layers) = newLayer (prev_size, size) w_fn b_fn a_fn : go size other_layers
+    go prev_size ((size, wFn, bFn, aFn):other_layers) = newLayer (prev_size, size) wFn bFn aFn : go size other_layers
 
 {-
     `BackPropagationStepData` type alias represents data on a step
@@ -129,43 +129,48 @@ assembleModel input_size xs = SequentialModel $ V.fromList $ go input_size xs
 -}
 type BackPropagationStepData = (Matrix Double, Matrix Double)
 {-
-    `_predict'` function processes `(n, i)` matrix through the layers and, saving all the intermediate steps,
+    `backpropagationPredict` function processes `(n, i)` matrix through the layers and, saving all the intermediate steps,
     returns the `(n, o)` output,
     where `i = inputSize model` and `o = outputSize model`.
     If the `input` matrix does not have `inputSize model` columns, the error will be thrown.
 
     Neural network is basically a transformation of a `x`, where `x` is a vector `[x_1, x_2, ..., x_i]`
-    (`x` has `i` characteristics). But sometimes you might need to process several `x`s simultaneously
-    (for example making use of parallelization). Packing of `n` `x`s in a matrix and processing them
-    through the neural network does the job.
+    (`x` has `i` characteristics). But sometimes you might need to process several `x`s simultaneously (batching).
+    Packing of `n` `x`s in a matrix and processing them through the neural network does the job.
 
-    This function usually is not what you want to use - `predict` and `predict'` are the functions for user's usage.
-    `_predict'` specializes on memorizing intermediate steps which then are used for the back propagation of error.
+    This function usually is not what you want to use - `predict` and `predictBatch` are the functions for user's usage.
+    `backpropagationPredict` specializes on memorizing intermediate steps which then are used for the back propagation of error.
     First matrix in the first back propagation step is always empty matrix.
 -}
-_predict' :: [Layer] -> Matrix Double -> Vector BackPropagationStepData
-_predict' model_layers input = V.fromList $ scanl step (M.zero 0 0, input) model_layers
+_backpropagationPredict :: [Layer] -> Matrix Double -> Vector BackPropagationStepData
+_backpropagationPredict model_layers input = V.fromList $ scanl step (M.zero 0 0, input) model_layers
  where
     step :: BackPropagationStepData -> Layer -> BackPropagationStepData
-    step (_, prev) (Layer w b act_fn) = (predicted, activated)
+    step (_, prev) (Layer w b actFn) = (predicted, activated)
      where
         predicted = prev * w + M.matrix (M.nrows prev) (M.ncols w) (\(_, j) -> b V.! (j - 1))
-        activated = M.mapPos (const $ call act_fn) predicted
+        activated = M.mapPos (const $ call actFn) predicted
 
 {-
-    `predict'` function processes `(n, i)` matrix through the neural network and returns the `(n, o)` output,
+    `predictMultiple` function processes `(n, i)` matrix through the neural network and returns the `(n, o)` output,
     where `i = inputSize model` and `o = outputSize model`.
     If the `input` matrix does not have `inputSize model` columns, the error will be thrown.
 
     Neural network is basically a transformation of a `x`, where `x` is a vector `[x_1, x_2, ..., x_i]`
-    (`x` has `i` characteristics). But sometimes you might need to process several `x`s simultaneously
-    (for example making use of parallelization). Packing of `n` `x`s in a matrix and processing them
-    through the neural network does the job.
+    (`x` has `i` characteristics). But sometimes you might need to process several `x`s simultaneously (batching).
+    Packing of `n` `x`s in a matrix and processing them through the neural network does the job.
 
     If you do not want to process several `x`s at the same time, you should prefer using `predict` function.
 -}
-predict' :: SequentialModel -> Matrix Double -> Matrix Double
-predict' model input = snd $ V.last $ _predict' (V.toList $ layers model) input
+predictMultiple :: SequentialModel -> Matrix Double -> Matrix Double
+predictMultiple model input = V.foldl' step input (layers model)
+ where
+    step :: Matrix Double -> Layer -> Matrix Double
+    step prev (Layer w b actFn) = activated
+     where
+        predicted = prev * w + M.matrix (M.nrows prev) (M.ncols w) (\(_, j) -> b V.! (j - 1))
+        activated = M.mapPos (const $ call actFn) predicted
+    
 {-
     `predict` function processes vector with length `i` through the neural network
     and returns the output as a vector of `o` size,
@@ -175,7 +180,7 @@ predict' model input = snd $ V.last $ _predict' (V.toList $ layers model) input
     If you want to process several vectors at the same time, you should prefer using `predict'` function.
 -}
 predict :: SequentialModel -> Vector Double -> Vector Double
-predict model input = M.getRow 1 $ predict' model (M.rowVector input)
+predict model input = M.getRow 1 $ predictMultiple model (M.rowVector input)
 
 {-
     `saveModel` function saves the model data to file for it to be restored later.
@@ -188,7 +193,7 @@ saveModel model filename = do
     let saveLayer layer = do
             _ <- write $ show $ weights layer
             _ <- write $ show $ bias layer
-            _ <- write $ show $ activation_fn layer
+            _ <- write $ show $ activationFn layer
             _ <- write ""
             return ()
     

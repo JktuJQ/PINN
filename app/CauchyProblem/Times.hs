@@ -39,15 +39,15 @@ data TimeSettings = TimeSettings {
     t1 :: Time,
 
     {-
-        `step_fn` function specifies what time interval will be separating values in a `Timegrid`.
+        `stepFn` function specifies what time interval will be separating values in a `Timegrid`.
         
-        `step_fn i` returns time interval that should pass between i-th and i+1-th time values,
+        `stepFn i` returns time interval that should pass between i-th and i+1-th time values,
         thus, it should be strictly positive.
 
         This function can be used to create `Timegrid`s with variable step, but it is still
-        very easy to implement `step_fn` for function with constant step - `step_fn = const tau`.
+        very easy to implement `stepFn` for function with constant step - `stepFn = const tau`.
     -}
-    step_fn :: TimeStepFn
+    stepFn :: TimeStepFn
 }
 
 {-
@@ -57,11 +57,11 @@ data TimeSettings = TimeSettings {
 -}
 data Timegrid = Timegrid {
     {-
-        `tau_fn` function specifies what time interval will be separating values in a `Timegrid`.
+        `tauFn` function specifies what time interval will be separating values in a `Timegrid`.
 
-        `Timegrid` obtains this function from the `TimeSettings` `step_fn`.
+        `Timegrid` obtains this function from the `TimeSettings` `stepFn`.
     -}
-    tau_fn :: TimeStepFn,
+    tauFn :: TimeStepFn,
 
     {-
         `Timeline` which represents this `Timegrid`.
@@ -80,7 +80,7 @@ fromTimeSettings settings = Timegrid step (takeWhile (<= end) (create start 0))
  where
     start = t0 settings
     end = t1 settings
-    step = step_fn settings
+    step = stepFn settings
 
     create :: Time -> Int -> [Time]
     create prev i = prev : create (prev + step i) (i + 1)
