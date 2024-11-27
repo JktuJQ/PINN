@@ -126,7 +126,17 @@ data ActivationFn =
         It is represented by `f(x) = sin(x)` and its derivative is `cos(x)`.
     -}
     Sin |
+    {-
+        `Sigmoid` function is equal to `1 / (1 + exp (-x))`.
+
+        It is represented by `f(x) = 1 / (1 + exp (-x))` and its derivative is `f(x) * (1 - f(x))`.
+    -}
     Sigmoid |
+    {-
+        `Tanh` function is equal to `(exp (2 * x) - 1) / (exp (2 * x) + 1)`.
+
+        It is represented by `f(x) = (exp (2 * x) - 1) / (exp (2 * x) + 1)` and its derivative is `1 - f(x) * f(x)`.
+    -}
     Tanh
  deriving Show
 instance DifferentiableFn ActivationFn Double Double where
@@ -135,7 +145,7 @@ instance DifferentiableFn ActivationFn Double Double where
                     ReLU    -> max 0 x
                     Sin     -> sin x
                     Sigmoid -> 1.0 / (1.0 + exp (-x))
-                    Tanh    -> (exp (2.0 * x) - 1) / (exp (2.0 * x) + 1)
+                    Tanh    -> (exp (2.0 * x) - 1.0) / (exp (2.0 * x) + 1.0)
 
     derivative fn x = case fn of
                         Id      -> 1.0
