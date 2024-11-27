@@ -20,7 +20,7 @@ import qualified Data.Vector.Mutable as MV
 import Data.Matrix (Matrix)
 import qualified Data.Matrix as M
 
-import PINN.DifferentiableFns (DifferentiableFn(..), LossFn)
+import PINN.Differentiation (DifferentiableFn(..), LossFn)
 import PINN.Model (Layer(..), SequentialModel(..), _backpropagationPredict)
 import PINN.Optimisers (Optimiser(..))
 
@@ -121,7 +121,6 @@ train
 train model optimiser (dataset, seed0) (TrainingHyperparameters e lr loss size) = runST $ do
     model_layers <- V.thaw $ layers model
     layer_parameters <- V.thaw $ initializeParams optimiser model
-    model_data <- newSTRef (model_layers, layer_parameters)
 
     losses <- MV.new (e * (V.length dataset `div` size))
 
@@ -167,27 +166,4 @@ train model optimiser (dataset, seed0) (TrainingHyperparameters e lr loss size) 
     updated_layers <- V.unsafeFreeze model_layers
 
     return (SequentialModel updated_layers, total_losses, last_seed)
- where
-    updateLayers
-        :: (Optimiser optimiser params) =>
-        STRef s (MV.MVector s Layer, MV.MVector s params)
-        -> optimiser
-        -> Matrix Double
-        -> Double
-        -> ST s ()
-    updateLayers model_data optimiser layer_error lr_k = do
-        layer_error <- newSTRef loss_derivative
-        forM_ (reverse [0..(MV.length model_layers - 1)]) $ \layer_index -> do
-            current_layer <- MV.read model_layers layer_index
-
-            dEdH <- readSTRef layer_error
-            let dEdT = M.elementwise (*) dEdH (M.mapPos (const $ derivative $ activationFn current_layer) (fst $ back_propagation ! (layer_index + 1)))
-            let dEdW = M.transpose (snd $ back_propagation ! layer_index) * dEdT
-            let dEdB = M.getRow 1 dEdT
-            writeSTRef layer_error (dEdT * M.transpose (weights current_layer))
-
-            current_params <- MV.read layer_parameters layer_index
-            let (new_layer, new_params) = updateStep optimiser current_params lr_k (dEdW, dEdB) current_layer
-
-            MV.write model_layers layer_index new_layer
-            MV.write layer_parameters layer_index new_params
+    

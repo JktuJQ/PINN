@@ -2,14 +2,84 @@
 {-# LANGUAGE FlexibleInstances, FunctionalDependencies #-}
 
 {-
-    `PINN.DifferentiableFns` submodule provides `DifferentiableFn` typeclass which
+    `PINN.Differentiation` submodule provides `DifferentiableFn` typeclass which
     allows differentiation of functions. It needs programmer to manually derive
     the formula of a derivative of a function.
 -}
-module PINN.DifferentiableFns where
+module PINN.Differentiation where
 
-import Data.Vector(Vector)
+import Data.Vector (Vector)
 import qualified Data.Vector as V
+
+import Data.Map (Map)
+import qualified Data.Map as M
+
+{-
+    `Symbol` record datatype represents symbolic variable.
+    It is needed to implement symbolic differentiation.
+
+    `Symbol a` implements `Ord`, `Eq` and partly `Num` typeclasses if `a` implements them.
+-}
+data Symbol a = Symbol {
+    {-
+        Value of the symbolic variable.
+    -}
+    value :: a,
+    {-
+        List of gradients (with respect to operands).
+    -}
+    gradients :: [(Symbol a, Symbol a -> Symbol a)]
+}
+instance Eq a => Eq (Symbol a) where
+    (==) a b = (value a) == (value b)
+instance Ord a => Ord (Symbol a) where
+    compare a b = compare (value a) (value b)
+
+{-
+    `Symbolic` typeclass defines types that are able to be treated symbolically.
+
+    There is a blanket instance for `Symbol a` if `a` is `Symbolic`.
+-}
+class Ord a => Symbolic a where
+    {-
+        Returns value that can be thought of as zero.
+    -}
+    constZero :: a -> a
+    {-
+        Returns value that can be thought of as one.
+    -}
+    constOne :: a -> a
+
+    {-
+        Symbolic addition.
+    -}
+    add :: a -> a -> a
+instance Symbolic a => Symbolic (Symbol a) where
+    constZero x = Symbol (constZero (value x)) []
+    constOne x = Symbol (constOne (value x)) []
+
+    add a b = Symbol (value a `add` value b) [(a, \path -> path), (b, \path -> path)]
+
+{-
+    `getGradients` function obtains the map of derivatives of given variable with respect to other variables.
+-}
+getGradients :: (Symbolic a) => Symbol a -> Map (Symbol a) (Symbol a)
+getGradients variable = traverseGraph (gradients variable) (M.singleton variable (constOne variable)) (constOne variable)
+ where
+    traverseGraph :: (Symbolic a) => [(Symbol a, Symbol a -> Symbol a)] -> Map (Symbol a) (Symbol a) -> Symbol a -> Map (Symbol a) (Symbol a)
+    traverseGraph ((child, applyGradient):xs) grads path = traverseGraph xs down_grads path
+     where
+        child_path = applyGradient path
+        
+        new_grads = M.alter (addPaths child_path) child grads
+         where
+            addPaths :: (Symbolic a) => Symbol a -> Maybe (Symbol a) -> Maybe (Symbol a)
+            addPaths a (Just b) = Just (a `add` b)
+            addPaths a Nothing = Just a
+
+        down_grads = traverseGraph (gradients child) new_grads child_path
+    traverseGraph [] grads _ = grads
+
 
 {-
     `DifferentiableFn` typeclass defines functions that take `args` and return `return_type`.
@@ -55,18 +125,24 @@ data ActivationFn =
 
         It is represented by `f(x) = sin(x)` and its derivative is `cos(x)`.
     -}
-    Sin
+    Sin |
+    Sigmoid |
+    Tanh
  deriving Show
 instance DifferentiableFn ActivationFn Double Double where
-    call fn = case fn of
-                Id   -> id
-                ReLU -> max 0
-                Sin  -> sin
+    call fn x = case fn of
+                    Id      -> id x
+                    ReLU    -> max 0 x
+                    Sin     -> sin x
+                    Sigmoid -> 1.0 / (1.0 + exp (-x))
+                    Tanh    -> (exp (2.0 * x) - 1) / (exp (2.0 * x) + 1)
 
-    derivative fn = case fn of
-                        Id   -> const 1.0
-                        ReLU -> fromIntegral . fromEnum . (>= 0)
-                        Sin  -> cos
+    derivative fn x = case fn of
+                        Id      -> 1.0
+                        ReLU    -> fromIntegral $ fromEnum $ x >= 0
+                        Sin     -> cos x
+                        Sigmoid -> let s = call fn x in s * (1.0 - s)
+                        Tanh    -> 1.0 - (call fn x) ^ (2 :: Int)
 
 {-
     `LossFn` enum lists loss functions that are supported.

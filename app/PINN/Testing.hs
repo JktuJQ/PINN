@@ -13,7 +13,7 @@ import Data.Vector ((!))
 import qualified Data.Vector as V
 
 import PINN.Model
-import PINN.DifferentiableFns
+import PINN.Differentiation
 import PINN.Optimisers
 import PINN.Training
 

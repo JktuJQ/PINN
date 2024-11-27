@@ -29,7 +29,7 @@ executable PINN
                    Plotting,
 
                    PINN,
-                   PINN.DifferentiableFns,
+                   PINN.Differentiation,
                    PINN.Model,
                    PINN.Optimisers,
                    PINN.Training,
@@ -39,6 +39,7 @@ executable PINN
                       random,
                       vector,
                       matrix,
+                      containers,
                       easyplot >= 1.0 && < 1.1
     hs-source-dirs:   app
     default-language: Haskell2010

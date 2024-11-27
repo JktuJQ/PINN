@@ -13,7 +13,7 @@ import qualified Data.Vector as V
 import Data.Matrix (Matrix)
 import qualified Data.Matrix as M
 
-import PINN.DifferentiableFns (DifferentiableFn(call), ActivationFn)
+import PINN.Differentiation (DifferentiableFn(call), ActivationFn)
 
 {-
     `Layer` record datatype represents one layer of a neural network.
