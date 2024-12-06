@@ -63,9 +63,9 @@ testXOR = (trained_model, TestPlots Nothing Nothing (Just losses_plot))
             (1, const $ const 1.0, const $ const 0.0, Sin)
                             ]
 
-    sgd = SGD 0.5 False
+    optimiser = SGD 0.5 False
     hyperparams = TrainingHyperparameters 100 (const 0.01) SSR 4
-    (trained_model, loss, _) = train model sgd (dataset, mkStdGen 1) hyperparams
+    (trained_model, loss, _) = train model optimiser (dataset, mkStdGen 1) hyperparams
 
     losses_plot = Data2D [Title "loss", Style Lines] [] [(fromIntegral i, loss ! i) | i <- [0..(V.length loss - 1)]]
 
@@ -84,9 +84,9 @@ testXSquared = (trained_model, TestPlots (Just original_plot) (Just predicted_pl
             (1, const $ const 1.0, const $ const 0.0, Id)
                             ]
 
-    sgd = SGD 0.5 False
+    optimiser = SGD 0.5 True
     hyperparams = TrainingHyperparameters 1000 (const 0.01) SSR 1
-    (trained_model, loss, _) = train model sgd (dataset, mkStdGen 1) hyperparams
+    (trained_model, loss, _) = train model optimiser (dataset, mkStdGen 1) hyperparams
 
     original_plot = Function2D [Title "predicted", Style Lines] [For range] (\x -> x * x)
     predicted_plot = Data2D [Title "predicted", Style Lines] [Range (-1.0) 1.0] [(i, V.head $ predict trained_model (V.singleton i)) | i <- range]
@@ -109,9 +109,9 @@ testTrigonometry = (trained_model, TestPlots (Just original_plot) (Just predicte
             (1, const $ const 1.0, const $ const 0.0, Id)
                             ]
 
-    sgd = SGD 0.0 False
+    optimiser = RMSProp 0.9
     hyperparams = TrainingHyperparameters 1000 (const 0.001) SSR 1
-    (trained_model, loss, _) = train model sgd (dataset, mkStdGen 1) hyperparams
+    (trained_model, loss, _) = train model optimiser (dataset, mkStdGen 1) hyperparams
 
     original_plot = Function2D [Title "predicted", Style Lines] [Range (-(2.0 * pi)) (2.0 * pi)] (\x -> sin (2.0 * cos x + 3.0) + 2.5)
     predicted_plot = Data2D [Title "predicted", Style Lines] [Range (-(2.0 * pi)) (2.0 * pi)] [(i, V.head $ predict trained_model (V.singleton i)) | i <- range]

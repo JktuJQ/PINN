@@ -1,5 +1,6 @@
 {- Those language pragmas are needed to create and instantiate `Optimiser` typeclass -}
 {-# LANGUAGE FlexibleInstances, FunctionalDependencies #-}
+{-# LANGUAGE InstanceSigs #-}
 
 {-
     `PINN.Optimisers` submodule implements different optimisers for the sequential model
@@ -47,8 +48,6 @@ data SGD = SGD {
         velocity (layer specific parameter) affect weights and bias.
 
         The greater the momentum is, the more the velocity's effect.
-
-        Negative value of momentum might cause unwanted behaviour - `momentum` should be greater or equal to zero.
     -}
     momentum :: Double,
     {-
@@ -61,14 +60,10 @@ data SGD = SGD {
     -}
     nesterov_momentum :: Bool
 }
-{-
-    Layer-specific params for SGD optimiser.
--}
-type SGDVelocities = (Matrix Double, Vector Double)
-instance Optimiser SGD SGDVelocities where
+instance Optimiser SGD (Matrix Double, Vector Double) where
     initializeParams _ model = V.map initializeWithOnes (layers model)
      where
-        initializeWithOnes :: Layer -> SGDVelocities
+        initializeWithOnes :: Layer -> (Matrix Double, Vector Double)
         initializeWithOnes (Layer w b _) = (M.matrix (M.nrows w) (M.ncols w) (const 1.0), V.replicate (V.length b) 1.0)
     
     updateStep (SGD beta nesterov) (vdw, vdb) lr (dw, db) (Layer w b actFn) = (Layer new_w new_b actFn, (new_vdw, new_vdb))
@@ -90,3 +85,34 @@ instance Optimiser SGD SGDVelocities where
         w_sum = M.elementwise (+) w
         b_sum = V.zipWith (+) b
         (new_w, new_b) = (w_sum (rule w_velocity new_vdw), b_sum (rule b_velocity new_vdb))
+
+{-
+    `RMSProp` optimiser utilizes exponentially weighted moving averages of squared gradients to update the parameters.
+-}
+data RMSProp = RMSProp {
+    {-
+        `decay` is a coefficient that decays previous gradients. It is similar to `momentum` in `SGD` in that matter.
+    -}
+    decay :: Double
+}
+instance Optimiser RMSProp (Matrix Double, Vector Double) where
+    initializeParams _ model = V.map initializeWithZeroes (layers model)
+     where
+        initializeWithZeroes :: Layer -> (Matrix Double, Vector Double)
+        initializeWithZeroes (Layer w b _) = (M.matrix (M.nrows w) (M.ncols w) (const 0.0), V.replicate (V.length b) 0.0)
+
+    updateStep (RMSProp rho) (edw, edb) lr (dw, db) (Layer w b actFn) = (Layer new_w new_b actFn, (new_edw, new_edb))
+     where
+        newEWAvg :: (a -> a -> a) -> (Double -> a -> a) -> (a -> a) -> a -> a -> a
+        newEWAvg sumFn mulFn sqFn gradient ewAvg = sumFn (mulFn rho ewAvg) (mulFn (1.0 - rho) (sqFn gradient))
+
+        w_ewAvg :: Matrix Double -> Matrix Double
+        w_ewAvg = newEWAvg (+) (M.mapPos . const . (*)) (M.mapPos (const (** 2.0))) dw
+        b_ewAvg :: Vector Double -> Vector Double
+        b_ewAvg = newEWAvg (V.zipWith (+)) (V.map . (*)) (V.map (** 2.0)) db
+
+        new_edw = w_ewAvg edw 
+        new_edb = b_ewAvg edb
+
+        new_w = w - M.mapPos (const (* lr)) (M.elementwise (\x y -> x / sqrt (y + 1e-7)) dw new_edw)
+        new_b = V.zipWith (-) b (V.map (* lr) (V.zipWith (\x y -> x / sqrt (y + 1e-7)) db new_edb))

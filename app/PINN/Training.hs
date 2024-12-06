@@ -125,6 +125,8 @@ train model optimiser (dataset, seed0) (TrainingHyperparameters e lr loss size) 
     losses <- MV.new (e * (V.length dataset `div` size))
 
     seed <- newSTRef seed0
+    iteration <- newSTRef 0
+
     forM_ [1..e] $ \_ -> do
         current_seed <- readSTRef seed
         let (shuffled_dataset, new_seed) = shuffleDataset (dataset, current_seed)
@@ -132,17 +134,19 @@ train model optimiser (dataset, seed0) (TrainingHyperparameters e lr loss size) 
 
         let batches = splitToBatches size shuffled_dataset
         forM_ batches $ \(batch_input, batch_output) -> do
-            let iteration = MV.length losses
+            i <- readSTRef iteration
 
             freezed_model <- V.freeze model_layers
             let back_propagation = _backpropagationPredict (V.toList freezed_model) batch_input
             let predicted_output = snd $ V.last back_propagation
 
             let batches_rows = [(M.getRow row batch_output, M.getRow row predicted_output) | row <- [1..(M.nrows batch_output)]]
-            MV.write losses iteration (sum $ map (V.sum . call loss) batches_rows)
+            MV.write losses i (sum $ map (V.sum . call loss) batches_rows)
             let loss_derivative = M.fromLists $ map (V.toList . derivative loss) batches_rows
 
-            let lr_k = lr iteration
+            let lr_k = lr i
+
+            modifySTRef' iteration (+1)
 
             layer_error <- newSTRef loss_derivative
             forM_ (reverse [0..(MV.length model_layers - 1)]) $ \layer_index -> do
