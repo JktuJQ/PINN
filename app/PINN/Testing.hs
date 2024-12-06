@@ -109,7 +109,7 @@ testTrigonometry = (trained_model, TestPlots (Just original_plot) (Just predicte
             (1, const $ const 1.0, const $ const 0.0, Id)
                             ]
 
-    optimiser = RMSProp 0.9
+    optimiser = Adam 0.9 0.9
     hyperparams = TrainingHyperparameters 1000 (const 0.001) SSR 1
     (trained_model, loss, _) = train model optimiser (dataset, mkStdGen 1) hyperparams
 

@@ -91,7 +91,7 @@ instance Optimiser SGD (Matrix Double, Vector Double) where
 -}
 data RMSProp = RMSProp {
     {-
-        `decay` is a coefficient that decays previous gradients. It is similar to `momentum` in `SGD` in that matter.
+        `decay` is a coefficient that decays previous gradients. It is the opposite of `momentum` in `SGD` in that matter.
     -}
     decay :: Double
 }
@@ -116,3 +116,45 @@ instance Optimiser RMSProp (Matrix Double, Vector Double) where
 
         new_w = w - M.mapPos (const (* lr)) (M.elementwise (\x y -> x / sqrt (y + 1e-7)) dw new_edw)
         new_b = V.zipWith (-) b (V.map (* lr) (V.zipWith (\x y -> x / sqrt (y + 1e-7)) db new_edb))
+
+{-
+    `Adam` optimiser is a combination of the ‘SGD’ and the ‘RMSProp’ algorithms.
+-}
+data Adam = Adam {
+    {-
+        `adam_momentum` is a coefficient that specifies how much will the
+        velocity (layer specific parameter) affect weights and bias.
+
+        The greater the momentum is, the more the velocity's effect.
+    -}
+    adam_momentum :: Double,
+    {-
+        `adam_decay` is a coefficient that decays previous gradients. It is the opposite of `momentum` in `SGD` in that matter.
+    -}
+    adam_decay :: Double
+}
+instance Optimiser Adam ((Matrix Double, Vector Double), (Matrix Double, Vector Double)) where
+    initializeParams _ model = V.zip (V.map initializeWithZeroes (layers model)) (V.map initializeWithZeroes (layers model))
+     where
+        initializeWithZeroes :: Layer -> (Matrix Double, Vector Double)
+        initializeWithZeroes (Layer w b _) = (M.matrix (M.nrows w) (M.ncols w) (const 0.0), V.replicate (V.length b) 0.0)
+
+    updateStep (Adam beta1 beta2) ((vdw, vdb), (edw, edb)) lr (dw, db) (Layer w b actFn) = (Layer new_w new_b actFn, ((new_vdw, new_vdb), (new_edw, new_edb)))
+     where
+        mmul k = M.mapPos (const (* k))
+        vmul k = V.map (* k)
+
+        new_vdw = mmul beta1 vdw + mmul (1.0 - beta1) dw
+        new_vdb = V.zipWith (+) (vmul beta1 vdb) (vmul (1.0 - beta1) db)
+
+        v'dw = M.mapPos (const (/ (1 - beta1))) new_vdw
+        v'db = V.map (/ (1 - beta1)) new_vdb
+
+        new_edw = mmul beta2 edw + mmul (1.0 - beta2) (M.mapPos (const (** 2.0)) dw)
+        new_edb = V.zipWith (+) (vmul beta2 edb) (vmul (1.0 - beta2) (V.map (** 2.0) db))
+
+        e'dw = M.mapPos (const (/ (1 - beta2))) new_edw
+        e'db = V.map (/ (1 - beta2)) new_edb
+
+        new_w = w - mmul lr (M.elementwise (\x y -> x / sqrt (y + 1e-7)) v'dw e'dw)
+        new_b = V.zipWith (-) b (vmul lr (V.zipWith (\x y -> x / sqrt (y + 1e-7)) v'db e'db))
