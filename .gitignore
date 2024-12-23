@@ -2,4 +2,6 @@
 .vscode
 .idea
 
-dist-newstyle
+# Python
+.venv
+__pycache__
