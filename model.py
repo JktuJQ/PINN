@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from tqdm import tqdm
 
 import duffing
 
@@ -28,7 +29,9 @@ class NeuralNetwork(nn.Module):
             nn.Linear(1, 32),
             Sin(),
             nn.Linear(32, 32),
-            nn.Softplus(),
+            Sin(),
+            nn.Linear(32, 32),
+            nn.Tanh(),
             nn.Linear(32, 32),
             nn.Tanh(),
             nn.Linear(32, 32),
@@ -39,7 +42,8 @@ class NeuralNetwork(nn.Module):
     def forward(self, t):
         return self.layers(t)
 
-    def pinn_training(self, optimiser, scheduler, numerical_solution: np.array, batch_size: int, device: torch.device) -> dict[str, list]:
+    def pinn_training(self, optimiser, scheduler, real_solution: torch.Tensor, numerical_solution: np.array,
+                      batch_size: int, device: torch.device) -> dict[str, list]:
         self.train(True)
 
         T0_TENSOR = torch.tensor([T0], requires_grad=True).to(device)
@@ -50,25 +54,34 @@ class NeuralNetwork(nn.Module):
         indices = torch.randperm(DOTS)
         batches = [indices[i:i + batch_size] for i in range(0, DOTS, batch_size)]
 
-        history = {"PINN": [], "NUMERICAL RELATED": []}
-        for epoch in range(EPOCHS):
+        history = {"PINN": [], "NUMERICAL RELATED": [], "MSE": [], "MAX ERROR": []}
+
+        progress_bar = tqdm(range(EPOCHS), desc="Training")
+        for epoch in progress_bar:
             epoch_pinn_loss = 0.0
             epoch_numerical_loss = 0.0
+            epoch_mse_loss = 0.0
+            epoch_max_error = 0.0
 
             for batch_indices in batches:
                 optimiser.zero_grad()
 
-                # Get the current batch
                 t_batch = T_COLUMN[batch_indices]
                 x = self(t_batch).to(device)
 
                 # Numerical loss
                 numerical_loss = torch.mean(
-                    (x - torch.from_numpy(numerical_solution.y[0][batch_indices]).to(device)) ** 2)
+                    (x - torch.from_numpy(numerical_solution.y[0][batch_indices]).view(-1, 1).to(device)) ** 2)
 
                 # Residual loss
                 residual = duffing.residual(t_batch, x)
                 loss_residual = torch.mean(residual ** 2)
+
+                # Real MSE Loss
+                real_mse_loss = torch.mean((x - real_solution[batch_indices]) ** 2)
+
+                # Max Error
+                max_error = torch.max(torch.abs(x - real_solution[batch_indices]))
 
                 # Initial conditions
                 x0_predicted = self(T0_TENSOR).to(device)
@@ -80,14 +93,20 @@ class NeuralNetwork(nn.Module):
                 loss.backward()
                 epoch_pinn_loss += loss.item()
                 epoch_numerical_loss += numerical_loss.item()
+                epoch_mse_loss += real_mse_loss.item()
+                epoch_max_error += max_error.item()
                 optimiser.step()
 
             scheduler.step()
             history["PINN"].append(epoch_pinn_loss / len(batches))
             history["NUMERICAL RELATED"].append(epoch_numerical_loss / len(batches))
-            if (epoch + 1) % 16 == 0:
-                lr = scheduler.get_last_lr()[0]
-                print(f'Epoch {epoch + 1}, Loss: {loss.item()}, NRLoss: {numerical_loss.item()}, Learning Rate: {lr}')
+            history["MSE"].append(epoch_mse_loss / len(batches))
+            history["MAX ERROR"].append(epoch_max_error)
+            lr = scheduler.get_last_lr()[0]
+            progress_bar.set_description(
+                f'Epoch {epoch + 1}, Loss: {loss.item():.5E}, NRLoss: {numerical_loss.item():.5E}, MSE: {real_mse_loss.item():.5E}, Max Error: {max_error.item():.5E}, Learning Rate: {lr:.5E}')
+
+        progress_bar.clear()
         return history
 
     def save(self, filename: str):

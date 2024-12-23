@@ -17,12 +17,14 @@ DEVICE = cuda.initialize_device()
 pinn_model = NeuralNetwork().to(DEVICE)
 # pinn_model.load(NeuralNetwork.MODEL_NAME)
 
+t = torch.linspace(*BOUNDS, DOTS, requires_grad=True).view(-1, 1)
+
 optimiser = optim.Adam(pinn_model.parameters(), lr=0.001)
 scheduler = StepLR(optimiser, step_size=16, gamma=0.7)
 history = pinn_model.pinn_training(optimiser,
                                    scheduler,
-                                   duffing.solve_numerically(
-                                       torch.linspace(*BOUNDS, DOTS, requires_grad=True).view(-1, 1)),
+                                   duffing.harmonic_oscillator(t.to(DEVICE)),
+                                   duffing.solve_numerically(t),
                                    BATCH_SIZE,
                                    DEVICE)
 pinn_model.save(NeuralNetwork.MODEL_NAME)

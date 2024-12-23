@@ -30,12 +30,15 @@ def phase_diagram_plot(x, v):
 def metrics_plot(history: dict[str, list]):
     """Plots metrics using loss history obtained after training"""
 
+    ax = plt.gca()
+    ax.set_yscale('log')
+
     plt.plot(list(range(1, len(history["PINN"]) + 1)), history["PINN"], label="PINN MSE Loss")
     plt.plot(list(range(1, len(history["NUMERICAL RELATED"]) + 1)), history["NUMERICAL RELATED"],
              label="Numerical Related MSE Loss")
+    plt.plot(list(range(1, len(history["MSE"]) + 1)), history["MSE"], label="MSE")
+    plt.plot(list(range(1, len(history["MAX ERROR"]) + 1)), history["MAX ERROR"], label="Max Error")
 
-    ax = plt.gca()
-    ax.set_yscale('log')
     plt.xlabel('Epoch')
     plt.ylabel('MSE Loss')
     plt.title("Loss history")
