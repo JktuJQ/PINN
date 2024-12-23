@@ -13,23 +13,32 @@ torch.manual_seed(123)
 
 DEVICE = cuda.initialize_device()
 
+"""Numerical methods"""
+print()
+t = torch.linspace(*BOUNDS, DOTS, requires_grad=True).view(-1, 1)
+
+numerical_solution = duffing.solve_numerically(t)
+real_solution = duffing.harmonic_oscillator(t.to(DEVICE))
+print(f"MSE of numerical solution with DOTS = {DOTS}:",
+      min((real_solution - torch.from_numpy(numerical_solution.y[0]).view(-1, 1).to(DEVICE)) ** 2).item())
+print(f"Max Error of numerical solution with DOTS = {DOTS}:",
+      max(torch.abs(real_solution - torch.from_numpy(numerical_solution.y[0]).view(-1, 1).to(DEVICE))).item())
+
 """Model training"""
+print()
 pinn_model = NeuralNetwork().to(DEVICE)
 # pinn_model.load(NeuralNetwork.MODEL_NAME)
 
-t = torch.linspace(*BOUNDS, DOTS, requires_grad=True).view(-1, 1)
-
 optimiser = optim.Adam(pinn_model.parameters(), lr=0.001)
-scheduler = StepLR(optimiser, step_size=16, gamma=0.7)
+scheduler = StepLR(optimiser, step_size=10, gamma=0.6)
 history = pinn_model.pinn_training(optimiser,
                                    scheduler,
-                                   duffing.harmonic_oscillator(t.to(DEVICE)),
-                                   duffing.solve_numerically(t),
+                                   real_solution,
+                                   numerical_solution,
                                    BATCH_SIZE,
                                    DEVICE)
 pinn_model.save(NeuralNetwork.MODEL_NAME)
 
-pinn_model = pinn_model.to("cpu")
-
 """Plotting"""
-plotting.start_plotting(pinn_model, history)
+print()
+plotting.start_plotting(pinn_model.to("cpu"), history)

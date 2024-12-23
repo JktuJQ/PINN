@@ -26,17 +26,17 @@ class NeuralNetwork(nn.Module):
     def __init__(self, configuration: nn.Sequential = None):
         super().__init__()
         self.layers = nn.Sequential(
-            nn.Linear(1, 32),
+            nn.Linear(1, 64),
             Sin(),
-            nn.Linear(32, 32),
-            Sin(),
-            nn.Linear(32, 32),
+            nn.Linear(64, 64),
             nn.Tanh(),
-            nn.Linear(32, 32),
+            nn.Linear(64, 64),
+            nn.Softplus(),
+            nn.Linear(64, 64),
             nn.Tanh(),
-            nn.Linear(32, 32),
+            nn.Linear(64, 64),
             Sin(),
-            nn.Linear(32, 1),
+            nn.Linear(64, 1),
         ) if configuration is None else configuration
 
     def forward(self, t):

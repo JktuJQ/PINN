@@ -2,15 +2,15 @@ from math import pi as PI
 
 
 # Training constants
-DOTS: int = 5000
+DOTS: int = 10000
 
 BATCH_SIZE: int = 128
-EPOCHS: int = 256
+EPOCHS: int = 70
 
 LAMBDA: float = 0.001
 
 # Duffing equation parameters
-PARAMETERS: (float, float, float, float, float) = 2.0, 0.0, 0.0, 0.0, 1.2
+PARAMETERS: (float, float, float, float, float) = 1.0, 0.0, 0.0, 0.0, 1.2
 ALPHA, BETA, GAMMA, DELTA, OMEGA = PARAMETERS
 
 T = 2.0 * PI / OMEGA
