@@ -14,8 +14,8 @@ def differential_equation(t, x, v, a, cos_fn):
 def residual(t: torch.Tensor, x: torch.Tensor):
     """Finds residual from Duffing equation by using `torch.autograd`."""
     v = torch.autograd.grad(x, t, grad_outputs=torch.ones_like(x), create_graph=True)[0]
-    ALPHA = torch.autograd.grad(v, t, grad_outputs=torch.ones_like(x), create_graph=True)[0]
-    return differential_equation(t, x, v, ALPHA, torch.cos)
+    a = torch.autograd.grad(v, t, grad_outputs=torch.ones_like(x), create_graph=True)[0]
+    return differential_equation(t, x, v, a, torch.cos)
 
 
 def equations_system(t: float, solution: (float, float)):
