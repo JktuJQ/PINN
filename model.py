@@ -77,8 +77,8 @@ class NeuralNetwork(nn.Module):
                 residual = duffing.residual(t_batch, x)
                 loss_residual = torch.mean(residual ** 2)
 
-                # Real MSE Loss
-                real_mse_loss = torch.mean((x - real_solution[batch_indices]) ** 2)
+                # True MSE Loss
+                mse_loss = torch.mean((x - real_solution[batch_indices]) ** 2)
 
                 # Max Error
                 max_error = torch.max(torch.abs(x - real_solution[batch_indices]))
@@ -93,7 +93,7 @@ class NeuralNetwork(nn.Module):
                 loss.backward()
                 epoch_pinn_loss += loss.item()
                 epoch_numerical_loss += numerical_loss.item()
-                epoch_mse_loss += real_mse_loss.item()
+                epoch_mse_loss += mse_loss.item()
                 epoch_max_error += max_error.item()
                 optimiser.step()
 
@@ -104,13 +104,13 @@ class NeuralNetwork(nn.Module):
             history["MAX ERROR"].append(epoch_max_error)
             lr = scheduler.get_last_lr()[0]
             progress_bar.set_description(
-                f'Epoch {epoch + 1}, Loss: {loss.item():.5E}, NRLoss: {numerical_loss.item():.5E}, MSE: {real_mse_loss.item():.5E}, Max Error: {max_error.item():.5E}, Learning Rate: {lr:.5E}')
+                f'Epoch {epoch + 1}, Loss: {loss.item():.5E}, NRLoss: {numerical_loss.item():.5E}, MSE: {mse_loss.item():.5E}, Max Error: {max_error.item():.5E}, Learning Rate: {lr:.5E}')
 
         progress_bar.clear()
         return history
 
     def save(self, filename: str):
-        torch.save(self.state_dict(), f"data/{filename}")
+        torch.save(self.state_dict(), f"data/{filename}.model")
 
     def load(self, filename: str):
-        self.load_state_dict(torch.load(f"data/{filename}", weights_only=True))
+        self.load_state_dict(torch.load(f"data/{filename}.model", weights_only=True))
